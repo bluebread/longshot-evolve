@@ -37,7 +37,11 @@ LongshotEvolve provides a comprehensive set of tools for dynamically constructin
 2. Evaluator System
 ~~~~~~~~~~~~~~~~~~~~
 
-The evaluator component calculates critical metrics for boolean formula optimization:
+The evaluator component calculates critical metrics for boolean formula optimization. The evaluation process follows these steps:
+
+1. The computational graph of the boolean formula is implemented using the Python **treelib** library
+2. The graph is converted into a boolean function object (a truth table implemented in C++ via the **pybind11** library)
+3. Python methods are invoked to calculate the metrics
 
 **Average-Case Query Complexity (avgQ)**
   The primary optimization target. This metric measures the expected number of queries required to evaluate the boolean function in average cases.
