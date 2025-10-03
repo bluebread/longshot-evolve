@@ -45,10 +45,10 @@ The evaluator component calculates critical metrics for boolean formula optimiza
 **Feature Dimensions**
   Additional metrics used by the MAP-Elites algorithm to characterize and compare different boolean functions, enabling diverse exploration of the solution space.
 
-3. Code Agent
-~~~~~~~~~~~~~
+3. Initial Program Template
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The code agent is responsible for generating boolean functions that maximize avgQ. Each generated function is a Python method with the following signature:
+LongshotEvolve may provide an initial program as a starting point for the code agent (implemented in OpenEvolve) to search for optimal programs. Each program is a Python method with the following signature:
 
 .. code-block:: python
 
@@ -71,7 +71,7 @@ The code agent is responsible for generating boolean functions that maximize avg
         # to construct optimized boolean formula
         pass
 
-The agent must balance maximizing avgQ while respecting the width constraint, which limits the maximum breadth of the computational circuit.
+The code agent (from OpenEvolve) uses this template to generate and evolve programs that maximize avgQ while respecting the width constraint.
 
 Key Concepts
 ------------
