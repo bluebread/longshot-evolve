@@ -1,5 +1,5 @@
 LongshotEvolve Design Blueprint
-=======================
+=======================================
 
 Welcome to the LongshotEvolve documentation! This document outlines the design and architecture of the LongshotEvolve system, detailing its components, functionalities, and interactions.
 
