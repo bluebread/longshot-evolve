@@ -40,7 +40,25 @@ public:
 
 
 PYBIND11_MODULE(_core, m) {
-    m.doc() = "pybind11 example plugin"; // optional module docstring
+    m.doc() = "Longshot core module for Boolean function manipulation and analysis.\n\n"
+              "This module provides C++ implementations for Boolean functions including:\n"
+              "- BaseBooleanFunction: Abstract base class for Boolean functions\n"
+              "- MonotonicBooleanFunction: Boolean functions in CNF/DNF form\n"
+              "- CountingBooleanFunction: Boolean functions with dynamic clause management\n"
+              "- DecisionTree: Decision tree representation for Boolean functions\n"
+              "- Average query complexity computation (avgQ)";
+
+    py::class_<Literals>(m, "_Literals")
+        .def(py::init<uint32_t, uint32_t>())
+        .def(py::init<const Literals &>())
+        .def(py::init<>())
+        .def_property_readonly("is_empty", &Literals::is_empty)
+        .def_property_readonly("is_contradictory", &Literals::is_contradictory)
+        .def_property_readonly("is_constant", &Literals::is_constant)
+        .def_property_readonly("width", &Literals::width)
+        .def_property_readonly("pos", &Literals::pos)
+        .def_property_readonly("neg", &Literals::neg)
+        ;
 
     py::class_<DecisionTree>(m, "_CppDecisionTree")
         .def(py::init<>())
@@ -62,6 +80,7 @@ PYBIND11_MODULE(_core, m) {
         .def("as_dnf", &BaseBooleanFunction::as_dnf)
         .def("avgQ", &BaseBooleanFunction::avgQ, "tree"_a = nullptr)
         .def_property_readonly("num_vars", &BaseBooleanFunction::num_vars)
+        .def_property_readonly_static("MAX_VARS", [](py::object /* self */) { return BaseBooleanFunction::MAX_VARS; })
         ;
 
     py::class_<MonotonicBooleanFunction, BaseBooleanFunction>(m, "_MonotonicBooleanFunction")
@@ -71,6 +90,8 @@ PYBIND11_MODULE(_core, m) {
         .def("as_cnf", &MonotonicBooleanFunction::as_cnf)
         .def("as_dnf", &MonotonicBooleanFunction::as_dnf)
         .def("avgQ", &MonotonicBooleanFunction::avgQ, "tree"_a = nullptr)
+        .def("add_clause", &MonotonicBooleanFunction::add_clause)
+        .def("add_term", &MonotonicBooleanFunction::add_term)
         .def_property_readonly("num_vars", &MonotonicBooleanFunction::num_vars)
         ;
 
@@ -81,6 +102,10 @@ PYBIND11_MODULE(_core, m) {
         .def("as_cnf", &CountingBooleanFunction::as_cnf)
         .def("as_dnf", &CountingBooleanFunction::as_dnf)
         .def("avgQ", &CountingBooleanFunction::avgQ, "tree"_a = nullptr)
+        .def("add_clause", &CountingBooleanFunction::add_clause)
+        .def("add_term", &CountingBooleanFunction::add_term)
+        .def("del_clause", &CountingBooleanFunction::del_clause)
+        .def("del_term", &CountingBooleanFunction::del_term)
         .def_property_readonly("num_vars", &CountingBooleanFunction::num_vars)
         ;
 }
