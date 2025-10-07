@@ -16,11 +16,16 @@
 #include "utils.hpp"
 #include "truthtable.hpp"
 #include "tree.hpp"
+#include "literals.hpp"
 
 namespace longshot 
 {
     class BaseBooleanFunction
     {
+    public:
+        // This is for 31-bit _dp_item::depth limitation. 
+        // For any number of variables n, it must hold that n * 2^n <= 2^31. 
+        static constexpr int MAX_VARS = 26; 
     protected:
         int num_vars_;
         
@@ -29,6 +34,14 @@ namespace longshot
     
         BaseBooleanFunction(int n) : num_vars_(n)
         {
+            if (n > MAX_VARS || n <= 0)
+            {
+                throw std::invalid_argument(
+                    "num_vars (" + std::to_string(n) + ") exceeds MAX_VARS (" +
+                    std::to_string(MAX_VARS) + ") or is non-positive. This limitation exists due to " +
+                    "the internal representation using a 31-bit depth field in _dp_item_t."
+                );
+            }
         }
 
         ~BaseBooleanFunction() = default;
@@ -148,8 +161,15 @@ namespace longshot
 
                 _dp_item_t sf0 = lookup[rti - 2 * exp3_tb[p]];
                 _dp_item_t sf1 = lookup[rti - 1 * exp3_tb[p]];
-                uint32_t d = longshot::pow2(num_unfixed) + sf0.depth + sf1.depth;
-
+                
+                uint32_t d;
+                uint32_t pow2_val = longshot::pow2(num_unfixed);
+                uint32_t temp;
+                if (__builtin_add_overflow(pow2_val, sf0.depth, &temp) ||
+                    __builtin_add_overflow(temp, sf1.depth, &d)) {
+                    throw std::overflow_error("Depth calculation overflow in avgQ");
+                }
+                
                 if (target_d == d)
                     break;
 
@@ -206,8 +226,19 @@ namespace longshot
                     _dp_item_t sf1 = lookup[i - 1 * exp3_tb[b]];
 
                     bool c = (sf0.depth == 0) && (sf1.depth == 0) && (sf0.val == sf1.val);
-                    uint32_t d = (c ? 0 : (longshot::pow2(num_unfixed) + sf0.depth + sf1.depth));
                     bool v = sf0.val;
+
+                    uint32_t d;
+                    if (c) {
+                        d = 0;
+                    } else {
+                        uint32_t pow2_val = longshot::pow2(num_unfixed);
+                        uint32_t temp;
+                        if (__builtin_add_overflow(pow2_val, sf0.depth, &temp) ||
+                            __builtin_add_overflow(temp, sf1.depth, &d)) {
+                            throw std::overflow_error("Depth calculation overflow in avgQ");
+                        }
+                    }
 
                     if (d < min_d)
                     {
@@ -274,6 +305,52 @@ namespace longshot
             return truth_table_[x];
         }
 
+        void add_clause(Literals clause)
+        {
+            _add_literals_core(clause, true);
+        }
+
+        void add_term(Literals term)
+        {
+            _add_literals_core(term, false);
+        }
+
+        void _add_literals_core(Literals ls, bool is_clause)
+        {
+            if (ls.is_constant())
+            {
+                // Term: Literals with "x and not x" is always false
+                // Clause: Literals with "x or not x" is always true
+                return;
+            }
+
+            uint32_t lsp = ls.pos();
+            uint32_t lsn = ls.neg();
+            int cl_width = ls.width();
+
+            input_t mask = lsp | lsn;
+            input_t x = 0;
+
+            // TODO: read/write to truth table in 64-bits chunks 
+            for (uint64_t i = 0; i < longshot::pow2(num_vars_ - cl_width); i++)
+            {
+                if (is_clause)
+                {
+                    input_t y = (x | lsn) & ~lsp;
+                    truth_table_.reset(y);
+                }
+                else
+                {
+                    input_t y = (x | lsp) & ~lsn;
+                    truth_table_.set(y);
+                }
+
+                // magic bit manipulation: enumerate all inputs that satisfies the Literals
+                input_t z = (mask | x) + 1;
+                z = z & -z;
+                x = (~(z - 1) & x) | z;
+            }
+        }
     };
 
     class CountingBooleanFunction : public BaseBooleanFunction
@@ -321,6 +398,63 @@ namespace longshot
         {
             is_true_based_ = false;
             truth_table_.reset();
+        }
+        void add_clause(Literals clause)
+        {
+            _apply_literals_core(clause, true, true);
+        }
+
+        void add_term(Literals term)
+        {
+            _apply_literals_core(term, false, true);
+        }
+
+        void del_clause(Literals clause)
+        {
+            _apply_literals_core(clause, true, false);
+        }
+
+        void del_term(Literals term)
+        {
+            _apply_literals_core(term, false, false);
+        }
+
+        void _apply_literals_core(Literals ls, bool is_clause, bool adding)
+        {
+            if (ls.is_constant() || (is_clause ^ is_true_based_))
+            {
+                // Term: Literals with "x and not x" is always false
+                // Clause: Literals with "x or not x" is always true
+                return;
+            }
+
+            uint32_t lsp = ls.pos();
+            uint32_t lsn = ls.neg();
+            int cl_width = ls.width();
+
+            input_t mask = lsp | lsn;
+            input_t x = 0;
+            
+            // TODO: read/write to truth table in 64-bits chunks 
+            for (uint64_t i = 0; i < longshot::pow2(num_vars_ - cl_width); i++)
+            {
+                input_t y = 0;
+
+                if (is_clause)
+                    y = (x | lsn) & ~lsp;
+                else
+                    y = (x | lsp) & ~lsn;
+
+                if (adding)
+                    truth_table_.inc(y);
+                else
+                    truth_table_.dec(y);
+
+                // magic bit manipulation: enumerate all inputs that satisfies the Literals
+                input_t z = (mask | x) + 1;
+                z = z & -z;
+                x = (~(z - 1) & x) | z;
+            }
         }
     };
 }

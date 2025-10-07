@@ -4,12 +4,11 @@
 
 ## Critical Bugs
 
-- [ ] **Core module input size limitation**: The avgQ calculation uses integer representation where avgQ = depth / 2^n. The `depth` field in [bool.hpp:52](longshot/core/bool.hpp#L52) is 31 bits (`uint32_t depth : 31`). Since max avgQ ≤ n, we have depth ≤ n × 2^n ≤ 2^31, which limits n to 26 (26 × 2^26 ≈ 1.7B < 2^31, but 27 × 2^27 ≈ 3.6B > 2^31). If upgraded to 64-bit depth, n could reach ~58. Need to:
-  - [ ] Hard-code maximum number of input variables (MAX_NUM_VARS = 26 for current 31-bit implementation)
-  - [ ] Add validation in BaseBooleanFunction constructor to reject num_vars > MAX_NUM_VARS
-  - [ ] Expose MAX_NUM_VARS constant to Python interface
-  - [ ] Add clear error messages explaining the limitation
-  - [ ] (Optional) Consider upgrading to 64-bit depth field to support up to ~58 variables
+- [O] ~~**Core module input size limitation**: The avgQ calculation uses integer representation where avgQ = depth / 2^n. The `depth` field in [bool.hpp:52](longshot/core/bool.hpp#L52) is 31 bits (`uint32_t depth : 31`). Since max avgQ ≤ n, we have depth ≤ n × 2^n ≤ 2^31, which limits n to 26 (26 × 2^26 ≈ 1.7B < 2^31, but 27 × 2^27 ≈ 3.6B > 2^31). If upgraded to 64-bit depth, n could reach ~58. Need to:~~
+  - [O] ~~Hard-code maximum number of input variables (MAX_NUM_VARS = 26 for current 31-bit implementation)~~
+  - [O] ~~Add validation in BaseBooleanFunction constructor to reject num_vars > MAX_NUM_VARS~~
+  - [O] ~~Expose MAX_NUM_VARS constant to Python interface~~
+  - [O] ~~Add clear error messages explaining the limitation~~
 
 ## New Features
 
