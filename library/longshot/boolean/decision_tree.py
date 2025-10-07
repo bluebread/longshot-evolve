@@ -1,6 +1,7 @@
 from binarytree import Node
 from typing import Iterable
 from ..error import LongshotError
+from .._core import _CppDecisionTree, MAX_VARS
 
 class DecisionTree:
     """
@@ -39,7 +40,7 @@ class DecisionTree:
         if not isinstance(x, (int, Iterable)):
             raise LongshotError("the argument `x` is neither an integer nor an iterable.")
         if isinstance(x, int):
-            x = [bool((x >> i) & 1) for i in range(MAX_NUM_VARS)]
+            x = [bool((x >> i) & 1) for i in range(MAX_VARS)]
         
         node = self._root
         
