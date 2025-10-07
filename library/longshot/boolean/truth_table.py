@@ -1,6 +1,7 @@
 """Truth table representations for Boolean functions using PyTorch tensors."""
 import torch
 from typing import Callable
+from .._core import MAX_VARS
 
 class TruthTable:
     """
@@ -47,17 +48,17 @@ def single_var_template(
     Create a factory function for generating single-variable truth tables.
 
     Args:
-        num_vars: Total number of variables (must be in range [1, 26])
+        num_vars: Total number of variables (must be in range [1, MAX_VARS])
         device: PyTorch device for tensor allocation
 
     Returns:
         A callable VAR(vidx) that creates a truth table for variable vidx
 
     Raises:
-        ValueError: If num_vars is not in range [1, 26]
+        ValueError: If num_vars is not in range [1, MAX_VARS]
     """
-    if num_vars <= 0 or num_vars > 26:
-        raise ValueError("num_vars must be in the range [1, 26]")
+    if num_vars <= 0 or num_vars > MAX_VARS:
+        raise ValueError(f"num_vars must be in the range [1, {MAX_VARS}]")
 
     def VAR(vidx: int) -> TruthTable:
         """
