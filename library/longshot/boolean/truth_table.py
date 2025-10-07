@@ -93,7 +93,7 @@ def single_var_template(
         else:
             if vidx < 6:
                 x = 0
-                for k in range(1 << num_vars):  # 2^num_vars entries
+                for k in range(1 << 6):  # 2^6 = 64 entries
                     if (k >> vidx) & 1:  # Check if vidx-th bit of k is 1
                         x |= (1 << k)  # Set k-th bit in the truth table
                         
