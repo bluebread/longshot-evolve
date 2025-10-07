@@ -97,12 +97,12 @@ def single_var_template(
                     if (k >> vidx) & 1:  # Check if vidx-th bit of k is 1
                         x |= (1 << k)  # Set k-th bit in the truth table
                         
-                tensor = torch.fill(
-                    (1 << (num_vars - 6),),
-                    x, 
+                t = torch.zeros(
+                    (1 << (num_vars - 6),), 
                     dtype=torch.uint64, 
                     device=device
                 )
+                tensor = torch.fill(t, x)
             else:
                 x = torch.arange(
                     0, 
