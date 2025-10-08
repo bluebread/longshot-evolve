@@ -1,6 +1,5 @@
 from binarytree import Node
 from typing import Iterable
-from ..error import LongshotError
 from .._core import _CppDecisionTree, MAX_VARS
 
 class DecisionTree:
@@ -12,7 +11,7 @@ class DecisionTree:
         Initializes a `DecisionTree`. It can be built from a C++ decision tree object (`_CppDecisionTree`) or a given root `Node`.
         """
         if not isinstance(ctree, _CppDecisionTree):
-            raise LongshotError("the argument `ctree` is not a DecisionTree object.")
+            raise TypeError("the argument `ctree` is not a _CppDecisionTree object.")
         
         if ctree is not None:
             self._root = self._recursive_build(ctree)
@@ -38,7 +37,7 @@ class DecisionTree:
         Evaluates the decision tree for a given input assignment `x` and returns the boolean result.
         """
         if not isinstance(x, (int, Iterable)):
-            raise LongshotError("the argument `x` is neither an integer nor an iterable.")
+            raise TypeError("the argument `x` must be an integer or an iterable.")
         if isinstance(x, int):
             x = [bool((x >> i) & 1) for i in range(MAX_VARS)]
         
@@ -57,6 +56,6 @@ class DecisionTree:
     @root.setter
     def root(self, new_root: Node) -> None:
         if not isinstance(new_root, Node):
-            raise LongshotError("root must be set to a Node instance")
+            raise TypeError("root must be set to a Node instance")
         self._root = new_root
         
