@@ -13,7 +13,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <torch/torch.h>    
+#include <torch/extension.h> 
 
 #include "utils.hpp"
 #include "truthtable.hpp"
@@ -154,7 +154,7 @@ namespace longshot
 
             uint32_t x = rt.unfixed();
             unsigned int num_unfixed = num_vars_ - level; // equal to __builtin_popcount(x);
-            int p;
+            int p = 0;
 
             while (x != 0)
             {
@@ -291,7 +291,7 @@ namespace longshot
         {
         }
         MonotonicBooleanFunction(const torch::Tensor &tensor) : 
-            BaseBooleanFunction(0), 
+            BaseBooleanFunction(1), 
             truth_table_(tensor)
         {
             num_vars_ = truth_table_.num_vars();

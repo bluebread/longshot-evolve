@@ -48,6 +48,9 @@ PYBIND11_MODULE(_core, m) {
               "- DecisionTree: Decision tree representation for Boolean functions\n"
               "- Average query complexity computation (avgQ)";
 
+    // Expose MAX_VARS at module level
+    m.attr("MAX_VARS") = BaseBooleanFunction::MAX_VARS;
+
     py::class_<Literals>(m, "_Literals")
         .def(py::init<uint32_t, uint32_t>())
         .def(py::init<const Literals &>())
@@ -80,12 +83,12 @@ PYBIND11_MODULE(_core, m) {
         .def("as_dnf", &BaseBooleanFunction::as_dnf)
         .def("avgQ", &BaseBooleanFunction::avgQ, "tree"_a = nullptr)
         .def_property_readonly("num_vars", &BaseBooleanFunction::num_vars)
-        .def_property_readonly_static("MAX_VARS", [](py::object /* self */) { return BaseBooleanFunction::MAX_VARS; })
         ;
 
     py::class_<MonotonicBooleanFunction, BaseBooleanFunction>(m, "_MonotonicBooleanFunction")
-        .def(py::init<int>())
-        .def(py::init<const MonotonicBooleanFunction &>())
+        // .def(py::init<int>())
+        // .def(py::init<const MonotonicBooleanFunction &>())
+        .def(py::init<const torch::Tensor &>())
         .def("eval", &MonotonicBooleanFunction::eval)
         .def("as_cnf", &MonotonicBooleanFunction::as_cnf)
         .def("as_dnf", &MonotonicBooleanFunction::as_dnf)

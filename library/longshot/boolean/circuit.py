@@ -1,8 +1,9 @@
 """Truth table representations for Boolean functions using PyTorch tensors."""
 import torch
 from typing import Callable, Iterable
-from decision_tree import DecisionTree
-from .._core import MAX_VARS, MonotonicBooleanFunction, _CppDecisionTree
+from .decision_tree import DecisionTree
+from .._core import MAX_VARS, _MonotonicBooleanFunction, _CppDecisionTree
+
 
 class Circuit:
     """
@@ -53,6 +54,19 @@ class Circuit:
         """Return the number of variables in the circuit."""
         return len(self.vars)
     
+    def __getitem__(self, idx: int) -> int:
+        """Get the output value for a specific input index."""
+        if self.num_vars <= 6:
+            return (self.table.item() >> idx) & 1
+        else:
+            chunk_idx = idx >> 6  # idx // 64
+            bit_idx = idx & 63    # idx % 64
+            return (self.table[chunk_idx].item() >> bit_idx) & 1
+    
+    def __str__(self):
+        ts = '\n\t' + ',\n\t'.join([f'{bin(i)}={self[i]}' for i in range(1 << self.num_vars)])
+        return f"Circuit(vars={self.vars}, table={ts})"
+    
 
 def VAR_factory(
     num_vars: int,
@@ -100,7 +114,7 @@ def VAR_factory(
                     x |= (1 << k)  # Set k-th bit in the truth table
 
             tensor = torch.tensor(
-                x,
+                [x],
                 dtype=torch.uint64,
                 device=device
             )
@@ -216,7 +230,7 @@ def avgQ(
     Raises:
         May raise exceptions from MonotonicBooleanFunction construction or avgQ computation
     """
-    bf = MonotonicBooleanFunction(circuit.table)
+    bf = _MonotonicBooleanFunction(circuit.table)
     ctree = _CppDecisionTree() if build_tree else None
     qv = bf.avgQ(ctree)
 

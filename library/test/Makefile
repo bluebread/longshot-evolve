@@ -2,7 +2,7 @@
 
 SRC_DIR := .
 BUILD_DIR := .
-INC_DIRS := ../../library/longshot/core
+INC_DIRS := ../../library/longshot/core /usr/local/lib/python3.10/dist-packages/torch/include/ /usr/local/lib/python3.10/dist-packages/torch/include/torch/csrc/api/include /usr/include/python3.10
 
 PIP_CACHE_FILES := $(shell find .. -name '*.so' -o -wholename '*/__pycache__' -o -wholename '*.egg-info' -o -wholename '../build')
 

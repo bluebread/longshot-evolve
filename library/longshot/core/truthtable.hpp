@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <cstdlib>
 
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include "utils.hpp"
 
