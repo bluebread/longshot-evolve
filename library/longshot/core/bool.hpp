@@ -13,6 +13,8 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <torch/torch.h>    
+
 #include "utils.hpp"
 #include "truthtable.hpp"
 #include "tree.hpp"
@@ -287,6 +289,12 @@ namespace longshot
             BaseBooleanFunction(other.num_vars_), 
             truth_table_(std::move(other.truth_table_))
         {
+        }
+        MonotonicBooleanFunction(const torch::Tensor &tensor) : 
+            BaseBooleanFunction(0), 
+            truth_table_(tensor)
+        {
+            num_vars_ = truth_table_.num_vars();
         }
 
         ~MonotonicBooleanFunction() = default;

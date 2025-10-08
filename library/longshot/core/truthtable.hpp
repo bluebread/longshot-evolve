@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <cstdlib>
 
+#include <torch/torch.h>
+
 #include "utils.hpp"
 
 namespace longshot 
@@ -52,6 +54,29 @@ namespace longshot
             other.chunks_ = nullptr;
             other.capacity_ = 0;
         }
+        SimpleTruthTable(const torch::Tensor &tensor) : chunks_(nullptr)
+        {
+            if (tensor.dim() != 1 || tensor.dtype() != torch::kUInt64) {
+                throw std::invalid_argument("SimpleTruthTable: tensor must be 1-dimensional and of type uint64");
+            }
+            num_vars_ = 0;
+            size_t size = tensor.size(0);
+            while ((1ull << num_vars_) < size * 64) {
+                num_vars_++;
+            }
+            if ((1ull << num_vars_) != size * 64) {
+                throw std::invalid_argument("SimpleTruthTable: tensor size is not a power of two");
+            }
+            if (num_vars_ < 0 || num_vars_ >= 64) {
+                throw std::invalid_argument("SimpleTruthTable: num_vars must be in [0, 63]");
+            }
+            capacity_ = size * sizeof(uint64_t);
+            chunks_ = (uint64_t *)malloc(capacity_);
+            if (chunks_ == nullptr) {
+                throw std::bad_alloc();
+            }
+            memcpy(chunks_, tensor.data_ptr(), capacity_);
+        }
 
         ~SimpleTruthTable()
         {
@@ -77,6 +102,16 @@ namespace longshot
         bool operator[](uint32_t x) const
         {
             return (chunks_[x / 64] >> (x % 64)) & 1;
+        }
+
+        int num_vars() const
+        {
+            return num_vars_;
+        }
+
+        int num_chunks() const
+        {
+            return capacity_ / sizeof(uint64_t);
         }
     };
 
