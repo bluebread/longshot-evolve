@@ -1,3 +1,7 @@
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, module="binarytree")
+
 from binarytree import Node
 from typing import Iterable
 from .._core import _CppDecisionTree, MAX_VARS

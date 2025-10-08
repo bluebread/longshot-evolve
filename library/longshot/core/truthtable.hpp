@@ -69,10 +69,6 @@ namespace longshot
                 throw std::bad_alloc();
             }
             memcpy(chunks_, buf.ptr, capacity_);
-            printf("Loaded tensor with %d variables.\n", num_vars_);
-            printf("Truth table size: %zu bytes.\n", capacity_);
-            printf("Truth table capacity: %zu entries.\n", size);
-            printf("The first element is: %llu nad %llu\n", chunks_[0], ((uint64_t *)buf.ptr)[0]);
         }
 
         ~SimpleTruthTable()

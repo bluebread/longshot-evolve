@@ -296,7 +296,6 @@ namespace longshot
             BaseBooleanFunction(n), 
             truth_table_(n, arr)
         {
-            printf("Tensor has %d variables.\n", truth_table_.num_vars());
             num_vars_ = truth_table_.num_vars();
         }
 
