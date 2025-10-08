@@ -49,6 +49,9 @@ The evaluator component calculates critical metrics for boolean formula optimiza
 **Feature Dimensions**
   Additional metrics used by the MAP-Elites algorithm to characterize and compare different boolean functions, enabling diverse exploration of the solution space.
 
+**Width-s CNF/DNF Representation**
+  All generated boolean formulas must be representable in width-s CNF (Conjunctive Normal Form) or DNF (Disjunctive Normal Form), where s is the maximum number of literals per clause. Since CNF/DNF formulas correspond to depth-2 boolean circuits, this constraint is verified by tracking the circuit width (number of inputs) of the lowest-level gates. This ensures the formulas maintain a bounded structural complexity.
+
 3. Initial Program Template
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
