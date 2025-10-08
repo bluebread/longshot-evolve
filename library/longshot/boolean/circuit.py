@@ -146,16 +146,18 @@ def VAR_factory(
                 )
                 tensor = torch.fill(t, x)
             else:
+                # torch.arange and torch.where don't support uint64, use int64 then convert
                 x = torch.arange(
-                    0, 
-                    1 << (num_vars - 6), 
-                    dtype=torch.uint64, 
+                    0,
+                    1 << (num_vars - 6),
+                    dtype=torch.int64,
                     device=device
                 )
                 mask = (1 << (vidx - 6))
-                ones = torch.tensor((1 << 64) - 1, dtype=torch.uint64, device=device)
-                zeros = torch.tensor(0, dtype=torch.uint64, device=device)
-                tensor = torch.where((x & mask) > 0, ones, zeros)
+                # -1 in int64 has all bits set, which becomes (1<<64)-1 when cast to uint64
+                ones = torch.tensor(-1, dtype=torch.int64, device=device)
+                zeros = torch.tensor(0, dtype=torch.int64, device=device)
+                tensor = torch.where((x & mask) > 0, ones, zeros).to(torch.uint64)
 
         return Circuit(num_vars, [vidx], tensor)
     
@@ -223,7 +225,6 @@ def OR(*circuits: list[Circuit]) -> Circuit:
 
 
 def avgQ(
-    num_vars: int,
     circuit: Circuit,
     build_tree: bool = False
 ) -> float | tuple[float, DecisionTree]:
@@ -245,7 +246,7 @@ def avgQ(
     Raises:
         May raise exceptions from MonotonicBooleanFunction construction or avgQ computation
     """
-    bf = _MonotonicBooleanFunction(num_vars, circuit.table.cpu().numpy())
+    bf = _MonotonicBooleanFunction(circuit.num_vars, circuit.table.cpu().numpy())
     ctree = _CppDecisionTree() if build_tree else None
     qv = bf.avgQ(ctree)
 
