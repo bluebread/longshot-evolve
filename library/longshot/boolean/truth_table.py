@@ -1,58 +1,82 @@
 """Truth table representations for Boolean functions using PyTorch tensors."""
 import torch
-from typing import Callable
-from .._core import MAX_VARS
+from typing import Callable, Iterable
+from decision_tree import DecisionTree
+from .._core import MAX_VARS, MonotonicBooleanFunction
 
-class TruthTable:
+class CircuitComponent:
     """
-    A truth table representation of a Boolean function.
+    A circuit component representing a Boolean function with truth table representation.
 
     Truth tables can be stored in two formats:
     - For n ≤ 6 variables: packed into a 64-bit integer where bit k represents output for input k
     - For n > 6 variables: stored as a tensor of uint64 values
 
     Attributes:
-        tensor: PyTorch tensor storing the truth table values
+        vars: Set of variable indices used in this circuit component
+        table: PyTorch tensor storing the truth table values
     """
 
-    def __init__(self, tensor: torch.Tensor | None = None):
-        """Initialize a truth table with the given tensor."""
-        self.tensor = tensor
+    def __init__(self, involved_vars: Iterable, truth_table: torch.Tensor | None = None):
+        """
+        Initialize a circuit component with the given truth table tensor.
 
-    def __xor__(self, other: "TruthTable") -> "TruthTable":
-        """Compute XOR of two truth tables."""
-        return TruthTable(self.tensor ^ other.tensor)
+        Args:
+            involved_vars: Iterable of variable indices used in this circuit component
+            truth_table: Optional PyTorch tensor storing truth table values
+        """
+        self.vars = set(involved_vars)
+        self.table = truth_table
 
-    def __and__(self, other: "TruthTable") -> "TruthTable":
-        """Compute AND of two truth tables."""
-        return TruthTable(self.tensor & other.tensor)
+    def __xor__(self, other: "CircuitComponent") -> "CircuitComponent":
+        """Compute XOR of two circuit components."""
+        return CircuitComponent(self.vars.union(other.vars), self.table ^ other.table)
 
-    def __or__(self, other: "TruthTable") -> "TruthTable":
-        """Compute OR of two truth tables."""
-        return TruthTable(self.tensor | other.tensor)
+    def __and__(self, other: "CircuitComponent") -> "CircuitComponent":
+        """Compute AND of two circuit components."""
+        return CircuitComponent(self.vars.union(other.vars), self.table & other.table)
 
-    def __sub__(self, other: "TruthTable") -> "TruthTable":
-        """Compute set difference (A AND NOT B) of two truth tables."""
-        return TruthTable(self.tensor & ~other.tensor)
+    def __or__(self, other: "CircuitComponent") -> "CircuitComponent":
+        """Compute OR of two circuit components."""
+        return CircuitComponent(self.vars.union(other.vars), self.table | other.table)
 
-    def __invert__(self) -> "TruthTable":
-        """Compute NOT (negation) of the truth table."""
-        return TruthTable(~self.tensor)
+    def __sub__(self, other: "CircuitComponent") -> "CircuitComponent":
+        """Compute set difference (A AND NOT B) of two circuit components."""
+        return CircuitComponent(self.vars.union(other.vars), self.table & ~other.table)
 
+    def __invert__(self) -> "CircuitComponent":
+        """Compute NOT (negation) of the circuit component."""
+        return CircuitComponent(self.vars, ~self.table)
+    
+    @property
+    def num_vars(self) -> int:
+        """Return the number of variables in the circuit component."""
+        return len(self.vars)
+    
+    def avgQ(self, build_tree: bool = False) -> float | tuple[float, DecisionTree]:
+        pass    
+        # ctree = _CppDecisionTree() if build_tree else None
+        # qv = self._bf.avgQ(ctree)
+        
+        # if build_tree:
+        #    return qv, DecisionTree(ctree)
+       
+        # return qv
+    
 
 def single_var_template(
     num_vars: int,
     device: torch.device | str | None = None
-) -> Callable[[int], TruthTable]:
+) -> Callable[[int], CircuitComponent]:
     """
-    Create a factory function for generating single-variable truth tables.
+    Create a factory function for generating single-variable circuit components.
 
     Args:
         num_vars: Total number of variables (must be in range [1, MAX_VARS])
         device: PyTorch device for tensor allocation
 
     Returns:
-        A callable VAR(vidx) that creates a truth table for variable vidx
+        A callable VAR(vidx) that creates a circuit component for variable vidx
 
     Raises:
         ValueError: If num_vars is not in range [1, MAX_VARS]
@@ -60,15 +84,15 @@ def single_var_template(
     if num_vars <= 0 or num_vars > MAX_VARS:
         raise ValueError(f"num_vars must be in the range [1, {MAX_VARS}]")
 
-    def VAR(vidx: int) -> TruthTable:
+    def VAR(vidx: int) -> CircuitComponent:
         """
-        Generate a truth table for a single variable.
+        Generate a circuit component for a single variable.
 
         Args:
             vidx: Variable index (0-based)
 
         Returns:
-            TruthTable representing the variable
+            CircuitComponent representing the variable
 
         Raises:
             ValueError: If vidx is out of range
@@ -115,19 +139,19 @@ def single_var_template(
                 zeros = torch.tensor(0, dtype=torch.uint64, device=device)
                 tensor = torch.where((x & mask) > 0, ones, zeros)
 
-        return TruthTable(tensor)
+        return CircuitComponent(tensor)
     
     return VAR
 
-def XOR(*args: list[TruthTable]) -> TruthTable:
+def XOR(*args: list[CircuitComponent]) -> CircuitComponent:
     """
-    Compute the XOR (exclusive OR) of multiple truth tables.
+    Compute the XOR (exclusive OR) of multiple circuit components.
 
     Args:
-        *args: Variable number of TruthTable objects
+        *args: Variable number of CircuitComponent objects
 
     Returns:
-        TruthTable representing the XOR of all inputs
+        CircuitComponent representing the XOR of all inputs
 
     Raises:
         ValueError: If no arguments are provided
@@ -139,15 +163,15 @@ def XOR(*args: list[TruthTable]) -> TruthTable:
         result = result ^ tt
     return result
 
-def AND(*args: list[TruthTable]) -> TruthTable:
+def AND(*args: list[CircuitComponent]) -> CircuitComponent:
     """
-    Compute the AND (conjunction) of multiple truth tables.
+    Compute the AND (conjunction) of multiple circuit components.
 
     Args:
-        *args: Variable number of TruthTable objects
+        *args: Variable number of CircuitComponent objects
 
     Returns:
-        TruthTable representing the AND of all inputs
+        CircuitComponent representing the AND of all inputs
 
     Raises:
         ValueError: If no arguments are provided
@@ -159,15 +183,15 @@ def AND(*args: list[TruthTable]) -> TruthTable:
         result = result & tt
     return result
 
-def OR(*args: list[TruthTable]) -> TruthTable:
+def OR(*args: list[CircuitComponent]) -> CircuitComponent:
     """
-    Compute the OR (disjunction) of multiple truth tables.
+    Compute the OR (disjunction) of multiple circuit components.
 
     Args:
-        *args: Variable number of TruthTable objects
+        *args: Variable number of CircuitComponent objects
 
     Returns:
-        TruthTable representing the OR of all inputs
+        CircuitComponent representing the OR of all inputs
 
     Raises:
         ValueError: If no arguments are provided
