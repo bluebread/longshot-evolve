@@ -4,79 +4,69 @@ from typing import Callable, Iterable
 from decision_tree import DecisionTree
 from .._core import MAX_VARS, MonotonicBooleanFunction
 
-class CircuitComponent:
+class Circuit:
     """
-    A circuit component representing a Boolean function with truth table representation.
+    A circuit representing a Boolean function with truth table representation.
 
     Truth tables can be stored in two formats:
     - For n ≤ 6 variables: packed into a 64-bit integer where bit k represents output for input k
     - For n > 6 variables: stored as a tensor of uint64 values
 
     Attributes:
-        vars: Set of variable indices used in this circuit component
+        vars: Set of variable indices used in this circuit
         table: PyTorch tensor storing the truth table values
     """
 
     def __init__(self, involved_vars: Iterable, truth_table: torch.Tensor | None = None):
         """
-        Initialize a circuit component with the given truth table tensor.
+        Initialize a circuit with the given truth table tensor.
 
         Args:
-            involved_vars: Iterable of variable indices used in this circuit component
+            involved_vars: Iterable of variable indices used in this circuit
             truth_table: Optional PyTorch tensor storing truth table values
         """
         self.vars = set(involved_vars)
         self.table = truth_table
 
-    def __xor__(self, other: "CircuitComponent") -> "CircuitComponent":
-        """Compute XOR of two circuit components."""
-        return CircuitComponent(self.vars.union(other.vars), self.table ^ other.table)
+    def __xor__(self, other: "Circuit") -> "Circuit":
+        """Compute XOR of two circuits."""
+        return Circuit(self.vars.union(other.vars), self.table ^ other.table)
 
-    def __and__(self, other: "CircuitComponent") -> "CircuitComponent":
-        """Compute AND of two circuit components."""
-        return CircuitComponent(self.vars.union(other.vars), self.table & other.table)
+    def __and__(self, other: "Circuit") -> "Circuit":
+        """Compute AND of two circuits."""
+        return Circuit(self.vars.union(other.vars), self.table & other.table)
 
-    def __or__(self, other: "CircuitComponent") -> "CircuitComponent":
-        """Compute OR of two circuit components."""
-        return CircuitComponent(self.vars.union(other.vars), self.table | other.table)
+    def __or__(self, other: "Circuit") -> "Circuit":
+        """Compute OR of two circuits."""
+        return Circuit(self.vars.union(other.vars), self.table | other.table)
 
-    def __sub__(self, other: "CircuitComponent") -> "CircuitComponent":
-        """Compute set difference (A AND NOT B) of two circuit components."""
-        return CircuitComponent(self.vars.union(other.vars), self.table & ~other.table)
+    def __sub__(self, other: "Circuit") -> "Circuit":
+        """Compute set difference (A AND NOT B) of two circuits."""
+        return Circuit(self.vars.union(other.vars), self.table & ~other.table)
 
-    def __invert__(self) -> "CircuitComponent":
-        """Compute NOT (negation) of the circuit component."""
-        return CircuitComponent(self.vars, ~self.table)
+    def __invert__(self) -> "Circuit":
+        """Compute NOT (negation) of the circuit."""
+        return Circuit(self.vars, ~self.table)
     
     @property
     def num_vars(self) -> int:
-        """Return the number of variables in the circuit component."""
+        """Return the number of variables in the circuit."""
         return len(self.vars)
     
-    def avgQ(self, build_tree: bool = False) -> float | tuple[float, DecisionTree]:
-        pass    
-        # ctree = _CppDecisionTree() if build_tree else None
-        # qv = self._bf.avgQ(ctree)
-        
-        # if build_tree:
-        #    return qv, DecisionTree(ctree)
-       
-        # return qv
-    
 
-def single_var_template(
+def VAR_factory(
     num_vars: int,
     device: torch.device | str | None = None
-) -> Callable[[int], CircuitComponent]:
+) -> Callable[[int], Circuit]:
     """
-    Create a factory function for generating single-variable circuit components.
+    Create a factory function for generating single-variable circuits.
 
     Args:
         num_vars: Total number of variables (must be in range [1, MAX_VARS])
         device: PyTorch device for tensor allocation
 
     Returns:
-        A callable VAR(vidx) that creates a circuit component for variable vidx
+        A callable VAR(vidx) that creates a circuit for variable vidx
 
     Raises:
         ValueError: If num_vars is not in range [1, MAX_VARS]
@@ -84,15 +74,15 @@ def single_var_template(
     if num_vars <= 0 or num_vars > MAX_VARS:
         raise ValueError(f"num_vars must be in the range [1, {MAX_VARS}]")
 
-    def VAR(vidx: int) -> CircuitComponent:
+    def VAR(vidx: int) -> Circuit:
         """
-        Generate a circuit component for a single variable.
+        Generate a circuit for a single variable.
 
         Args:
             vidx: Variable index (0-based)
 
         Returns:
-            CircuitComponent representing the variable
+            Circuit representing the variable
 
         Raises:
             ValueError: If vidx is out of range
@@ -139,66 +129,80 @@ def single_var_template(
                 zeros = torch.tensor(0, dtype=torch.uint64, device=device)
                 tensor = torch.where((x & mask) > 0, ones, zeros)
 
-        return CircuitComponent(tensor)
+        return Circuit([vidx], tensor)
     
     return VAR
 
-def XOR(*args: list[CircuitComponent]) -> CircuitComponent:
+def XOR(*circuits: list[Circuit]) -> Circuit:
     """
-    Compute the XOR (exclusive OR) of multiple circuit components.
+    Compute the XOR (exclusive OR) of multiple circuits.
 
     Args:
-        *args: Variable number of CircuitComponent objects
+        *circuits: Variable number of Circuit objects
 
     Returns:
-        CircuitComponent representing the XOR of all inputs
+        Circuit representing the XOR of all inputs
 
     Raises:
         ValueError: If no arguments are provided
     """
-    if not args:
+    if not circuits:
         raise ValueError("XOR requires at least one argument")
-    result = args[0]
-    for tt in args[1:]:
+    result = circuits[0]
+    for tt in circuits[1:]:
         result = result ^ tt
     return result
 
-def AND(*args: list[CircuitComponent]) -> CircuitComponent:
+def AND(*circuits: list[Circuit]) -> Circuit:
     """
-    Compute the AND (conjunction) of multiple circuit components.
+    Compute the AND (conjunction) of multiple circuits.
 
     Args:
-        *args: Variable number of CircuitComponent objects
+        *circuits: Variable number of Circuit objects
 
     Returns:
-        CircuitComponent representing the AND of all inputs
+        Circuit representing the AND of all inputs
 
     Raises:
         ValueError: If no arguments are provided
     """
-    if not args:
+    if not circuits:
         raise ValueError("AND requires at least one argument")
-    result = args[0]
-    for tt in args[1:]:
+    result = circuits[0]
+    for tt in circuits[1:]:
         result = result & tt
     return result
 
-def OR(*args: list[CircuitComponent]) -> CircuitComponent:
+def OR(*circuits: list[Circuit]) -> Circuit:
     """
-    Compute the OR (disjunction) of multiple circuit components.
+    Compute the OR (disjunction) of multiple circuits.
 
     Args:
-        *args: Variable number of CircuitComponent objects
+        *circuits: Variable number of Circuit objects
 
     Returns:
-        CircuitComponent representing the OR of all inputs
+        Circuit representing the OR of all inputs
 
     Raises:
         ValueError: If no arguments are provided
     """
-    if not args:
+    if not circuits:
         raise ValueError("OR requires at least one argument")
-    result = args[0]
-    for tt in args[1:]:
+    result = circuits[0]
+    for tt in circuits[1:]:
         result = result | tt
     return result
+
+
+def avgQ(
+    circuit: Circuit, 
+    build_tree: bool = False
+) -> float | tuple[float, DecisionTree]:
+    pass    
+    # ctree = _CppDecisionTree() if build_tree else None
+    # qv = self._bf.avgQ(ctree)
+    
+    # if build_tree:
+    #    return qv, DecisionTree(ctree)
+    
+    # return qv
