@@ -13,12 +13,14 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <torch/extension.h> 
+#include <pybind11/numpy.h>
 
 #include "utils.hpp"
 #include "truthtable.hpp"
 #include "tree.hpp"
 #include "literals.hpp"
+
+namespace py = pybind11;
 
 namespace longshot 
 {
@@ -290,10 +292,11 @@ namespace longshot
             truth_table_(std::move(other.truth_table_))
         {
         }
-        MonotonicBooleanFunction(const torch::Tensor &tensor) : 
-            BaseBooleanFunction(1), 
-            truth_table_(tensor)
+        MonotonicBooleanFunction(int n, py::array_t<uint64_t, py::array::c_style | py::array::forcecast> arr) : 
+            BaseBooleanFunction(n), 
+            truth_table_(n, arr)
         {
+            printf("Tensor has %d variables.\n", truth_table_.num_vars());
             num_vars_ = truth_table_.num_vars();
         }
 

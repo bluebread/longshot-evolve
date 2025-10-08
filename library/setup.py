@@ -1,5 +1,4 @@
 # Available at setup time due to pyproject.toml
-import torch.utils.cpp_extension
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup, find_packages
 
@@ -23,15 +22,10 @@ ext_modules = [
             ('VERSION_INFO', __version__)
         ],
         cxx_std = 17,
-        include_dirs = [
-            "longshot/core",
-        ] + torch.utils.cpp_extension.include_paths(),
-        library_dirs = torch.utils.cpp_extension.library_paths(),
-        libraries = ['c10', 'torch', 'torch_cpu', 'torch_python'],
+        include_dirs = ["longshot/core"],
         extra_compile_args = [
             "-Ofast", "-fopenmp"
         ],
-        extra_link_args = ["-fopenmp"]
     ),
 ]
 

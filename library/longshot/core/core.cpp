@@ -1,6 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 
 #include "bool.hpp"
 
@@ -86,9 +87,9 @@ PYBIND11_MODULE(_core, m) {
         ;
 
     py::class_<MonotonicBooleanFunction, BaseBooleanFunction>(m, "_MonotonicBooleanFunction")
-        // .def(py::init<int>())
-        // .def(py::init<const MonotonicBooleanFunction &>())
-        .def(py::init<const torch::Tensor &>())
+        .def(py::init<int>())
+        .def(py::init<const MonotonicBooleanFunction &>())
+        .def(py::init<int, py::array_t<uint64_t, py::array::c_style | py::array::forcecast>>())
         .def("eval", &MonotonicBooleanFunction::eval)
         .def("as_cnf", &MonotonicBooleanFunction::as_cnf)
         .def("as_dnf", &MonotonicBooleanFunction::as_dnf)

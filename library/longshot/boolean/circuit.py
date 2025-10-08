@@ -18,7 +18,12 @@ class Circuit:
         table: PyTorch tensor storing the truth table values
     """
 
-    def __init__(self, involved_vars: Iterable, truth_table: torch.Tensor | None = None):
+    def __init__(
+        self, 
+        num_vars: int,
+        involved_vars: Iterable, 
+        truth_table: torch.Tensor | None = None
+    ):
         """
         Initialize a circuit with the given truth table tensor.
 
@@ -26,32 +31,41 @@ class Circuit:
             involved_vars: Iterable of variable indices used in this circuit
             truth_table: Optional PyTorch tensor storing truth table values
         """
+        self.num_vars = num_vars
         self.vars = set(involved_vars)
         self.table = truth_table
 
     def __xor__(self, other: "Circuit") -> "Circuit":
         """Compute XOR of two circuits."""
-        return Circuit(self.vars.union(other.vars), self.table ^ other.table)
+        if self.num_vars != other.num_vars:
+            raise ValueError("Cannot XOR circuits with different number of variables")
+        return Circuit(self.num_vars, self.vars.union(other.vars), self.table ^ other.table)
 
     def __and__(self, other: "Circuit") -> "Circuit":
         """Compute AND of two circuits."""
-        return Circuit(self.vars.union(other.vars), self.table & other.table)
+        if self.num_vars != other.num_vars:
+            raise ValueError("Cannot XOR circuits with different number of variables")
+        return Circuit(self.num_vars, self.vars.union(other.vars), self.table & other.table)
 
     def __or__(self, other: "Circuit") -> "Circuit":
         """Compute OR of two circuits."""
-        return Circuit(self.vars.union(other.vars), self.table | other.table)
+        if self.num_vars != other.num_vars:
+            raise ValueError("Cannot XOR circuits with different number of variables")
+        return Circuit(self.num_vars, self.vars.union(other.vars), self.table | other.table)
 
     def __sub__(self, other: "Circuit") -> "Circuit":
         """Compute set difference (A AND NOT B) of two circuits."""
-        return Circuit(self.vars.union(other.vars), self.table & ~other.table)
+        if self.num_vars != other.num_vars:
+            raise ValueError("Cannot XOR circuits with different number of variables")
+        return Circuit(self.num_vars, self.vars.union(other.vars), self.table & ~other.table)
 
     def __invert__(self) -> "Circuit":
         """Compute NOT (negation) of the circuit."""
-        return Circuit(self.vars, ~self.table)
+        return Circuit(self.num_vars, self.vars, ~self.table)
     
     @property
-    def num_vars(self) -> int:
-        """Return the number of variables in the circuit."""
+    def width(self) -> int:
+        """Return the width of the circuit."""
         return len(self.vars)
     
     def __getitem__(self, idx: int) -> int:
@@ -143,7 +157,7 @@ def VAR_factory(
                 zeros = torch.tensor(0, dtype=torch.uint64, device=device)
                 tensor = torch.where((x & mask) > 0, ones, zeros)
 
-        return Circuit([vidx], tensor)
+        return Circuit(num_vars, [vidx], tensor)
     
     return VAR
 
@@ -209,6 +223,7 @@ def OR(*circuits: list[Circuit]) -> Circuit:
 
 
 def avgQ(
+    num_vars: int,
     circuit: Circuit,
     build_tree: bool = False
 ) -> float | tuple[float, DecisionTree]:
@@ -230,7 +245,7 @@ def avgQ(
     Raises:
         May raise exceptions from MonotonicBooleanFunction construction or avgQ computation
     """
-    bf = _MonotonicBooleanFunction(circuit.table)
+    bf = _MonotonicBooleanFunction(num_vars, circuit.table.cpu().numpy())
     ctree = _CppDecisionTree() if build_tree else None
     qv = bf.avgQ(ctree)
 

@@ -8,9 +8,11 @@
 #include <stdexcept>
 #include <cstdlib>
 
-#include <torch/extension.h>
+#include <pybind11/numpy.h>
 
 #include "utils.hpp"
+
+namespace py = pybind11;
 
 namespace longshot 
 {
@@ -54,28 +56,23 @@ namespace longshot
             other.chunks_ = nullptr;
             other.capacity_ = 0;
         }
-        SimpleTruthTable(const torch::Tensor &tensor) : chunks_(nullptr)
+        SimpleTruthTable(int n, py::array_t<uint64_t, py::array::c_style | py::array::forcecast> arr) : chunks_(nullptr), num_vars_(n)
         {
-            if (tensor.dim() != 1 || tensor.dtype() != torch::kUInt64) {
-                throw std::invalid_argument("SimpleTruthTable: tensor must be 1-dimensional and of type uint64");
+            auto buf = arr.request();
+            if (buf.ndim != 1) {
+                throw std::invalid_argument("SimpleTruthTable: array must be 1-dimensional");
             }
-            num_vars_ = 0;
-            size_t size = tensor.size(0);
-            while ((1ull << num_vars_) < size * 64) {
-                num_vars_++;
-            }
-            if ((1ull << num_vars_) != size * 64) {
-                throw std::invalid_argument("SimpleTruthTable: tensor size is not a power of two");
-            }
-            if (num_vars_ < 0 || num_vars_ >= 64) {
-                throw std::invalid_argument("SimpleTruthTable: num_vars must be in [0, 63]");
-            }
+            size_t size = buf.shape[0];
             capacity_ = size * sizeof(uint64_t);
-            chunks_ = (uint64_t *)malloc(capacity_);
+            chunks_ = (uint64_t *)calloc(size, sizeof(uint64_t));
             if (chunks_ == nullptr) {
                 throw std::bad_alloc();
             }
-            memcpy(chunks_, tensor.data_ptr(), capacity_);
+            memcpy(chunks_, buf.ptr, capacity_);
+            printf("Loaded tensor with %d variables.\n", num_vars_);
+            printf("Truth table size: %zu bytes.\n", capacity_);
+            printf("Truth table capacity: %zu entries.\n", size);
+            printf("The first element is: %llu nad %llu\n", chunks_[0], ((uint64_t *)buf.ptr)[0]);
         }
 
         ~SimpleTruthTable()
