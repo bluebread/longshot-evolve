@@ -2,7 +2,7 @@
 import torch
 from typing import Callable, Iterable
 from decision_tree import DecisionTree
-from .._core import MAX_VARS, MonotonicBooleanFunction
+from .._core import MAX_VARS, MonotonicBooleanFunction, _CppDecisionTree
 
 class Circuit:
     """
@@ -195,14 +195,32 @@ def OR(*circuits: list[Circuit]) -> Circuit:
 
 
 def avgQ(
-    circuit: Circuit, 
+    circuit: Circuit,
     build_tree: bool = False
 ) -> float | tuple[float, DecisionTree]:
-    pass    
-    # ctree = _CppDecisionTree() if build_tree else None
-    # qv = self._bf.avgQ(ctree)
-    
-    # if build_tree:
-    #    return qv, DecisionTree(ctree)
-    
-    # return qv
+    """
+    Calculate the average query complexity for the given circuit.
+
+    The average query complexity (avgQ) measures the expected number of variable
+    queries needed to determine the output of a Boolean function, averaged over
+    all possible inputs.
+
+    Args:
+        circuit: The circuit to analyze
+        build_tree: If True, also construct and return the decision tree
+
+    Returns:
+        If build_tree is False, returns the average query complexity as a float.
+        If build_tree is True, returns a tuple of (avgQ value, DecisionTree object).
+
+    Raises:
+        May raise exceptions from MonotonicBooleanFunction construction or avgQ computation
+    """
+    bf = MonotonicBooleanFunction(circuit.table)
+    ctree = _CppDecisionTree() if build_tree else None
+    qv = bf.avgQ(ctree)
+
+    if build_tree:
+       return qv, DecisionTree(ctree)
+
+    return qv
