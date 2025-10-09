@@ -1,6 +1,6 @@
 """Truth table representations for Boolean functions using PyTorch tensors."""
 import torch
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Sequence, Iterator
 from .decision_tree import DecisionTree
 from .._core import MAX_VARS, _MonotonicBooleanFunction, _CppDecisionTree
 
@@ -85,6 +85,19 @@ class Circuit:
 def to_signed(n: int, bits: int = 64) -> int:
     return n if n < (1 << (bits - 1)) else n - (1 << bits)
 
+def flatten_args(args: Sequence[Circuit | Sequence[Circuit] | Iterator[Circuit]]) -> list[Circuit]:
+    """Flatten nested sequences of Circuit objects into a single list."""
+    flat_list = []
+    for arg in args:
+        if isinstance(arg, Circuit):
+            flat_list.append(arg)
+        elif isinstance(arg, Sequence):
+            flat_list.extend(arg)
+        elif isinstance(arg, Iterator):
+            flat_list.extend(list(arg))
+        else:
+            raise ValueError("Arguments must be Circuit or Sequence of Circuit")
+    return flat_list
 
 def VAR_factory(
     num_vars: int,
@@ -167,12 +180,12 @@ def VAR_factory(
     
     return VAR
 
-def XOR(*circuits: list[Circuit]) -> Circuit:
+def XOR(*args: Sequence[Circuit | Sequence[Circuit] | Iterator[Circuit]]) -> Circuit:
     """
     Compute the XOR (exclusive OR) of multiple circuits.
 
     Args:
-        *circuits: Variable number of Circuit objects
+        *args: Variable number of Circuit objects, sequences of Circuits, or iterators of Circuits
 
     Returns:
         Circuit representing the XOR of all inputs
@@ -180,6 +193,7 @@ def XOR(*circuits: list[Circuit]) -> Circuit:
     Raises:
         ValueError: If no arguments are provided
     """
+    circuits = flatten_args(args)
     if not circuits:
         raise ValueError("XOR requires at least one argument")
     result = circuits[0]
@@ -187,12 +201,12 @@ def XOR(*circuits: list[Circuit]) -> Circuit:
         result = result ^ tt
     return result
 
-def AND(*circuits: list[Circuit]) -> Circuit:
+def AND(*args: Sequence[Circuit | Sequence[Circuit] | Iterator[Circuit]]) -> Circuit:
     """
     Compute the AND (conjunction) of multiple circuits.
 
     Args:
-        *circuits: Variable number of Circuit objects
+        *args: Variable number of Circuit objects, sequences of Circuits, or iterators of Circuits
 
     Returns:
         Circuit representing the AND of all inputs
@@ -200,6 +214,7 @@ def AND(*circuits: list[Circuit]) -> Circuit:
     Raises:
         ValueError: If no arguments are provided
     """
+    circuits = flatten_args(args)
     if not circuits:
         raise ValueError("AND requires at least one argument")
     result = circuits[0]
@@ -207,12 +222,12 @@ def AND(*circuits: list[Circuit]) -> Circuit:
         result = result & tt
     return result
 
-def OR(*circuits: list[Circuit]) -> Circuit:
+def OR(*args: Sequence[Circuit | Sequence[Circuit] | Iterator[Circuit]]) -> Circuit:
     """
     Compute the OR (disjunction) of multiple circuits.
 
     Args:
-        *circuits: Variable number of Circuit objects
+        *args: Variable number of Circuit objects, sequences of Circuits, or iterators of Circuits
 
     Returns:
         Circuit representing the OR of all inputs
@@ -220,6 +235,7 @@ def OR(*circuits: list[Circuit]) -> Circuit:
     Raises:
         ValueError: If no arguments are provided
     """
+    circuits = flatten_args(args)
     if not circuits:
         raise ValueError("OR requires at least one argument")
     result = circuits[0]
