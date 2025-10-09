@@ -7,7 +7,7 @@ Tests the avgQ complexity calculation for various Boolean circuits including:
 - XOR functions
 """
 import pytest
-from longshot import VAR_factory, XOR, AND, OR, avgQ
+from longshot import VAR_factory, XOR, AND, OR, avgQ, avgQ_with_tree
 
 
 class TestDNF:
@@ -190,7 +190,7 @@ class TestDecisionTree:
         circuit = (x0 | ~x1) & (~x0 | x1 | x2)
 
         # Request decision tree construction
-        qv, tree = avgQ(circuit, build_tree=True)
+        qv, tree = avgQ_with_tree(circuit, build_tree=True)
 
         # Verify tree was created
         assert tree is not None
@@ -204,7 +204,7 @@ class TestDecisionTree:
 
         circuit = XOR(x0, x1, x2, x3)
 
-        qv, tree = avgQ(circuit, build_tree=True)
+        qv, tree = avgQ_with_tree(circuit, build_tree=True)
 
         assert tree is not None
         assert qv == pytest.approx(4.0), f"Expected avgQ=4.0, got {qv}"
@@ -228,7 +228,24 @@ def test_xor_n_complexity(n_vars, expected_avgq):
         f"XOR of {n_vars} variables should have avgQ={expected_avgq}"
 
 
-@pytest.mark.parametrize("n_vars", [1, 2, 3, 4, 5])
+# Parametrized tests for systematic testing
+@pytest.mark.parametrize("n_vars,w,expected_avgq", [
+    (3, 2, 2.0),
+    (4, 3, 3.0),
+    (5, 4, 4.0),
+    (8, 7, 7.0),
+])
+def test_xor_w_complexity(n_vars, w, expected_avgq):
+    """Test that n-variable XOR has avgQ = n."""
+    VAR = VAR_factory(n_vars)
+    variables = [VAR(i) for i in range(w)]
+
+    circuit = XOR(*variables)
+
+    assert avgQ(circuit) == pytest.approx(expected_avgq), \
+        f"XOR of {n_vars} variables should have avgQ={expected_avgq}"
+
+@pytest.mark.parametrize("n_vars", [1, 2, 3, 4, 8])
 def test_single_variable_complexity(n_vars):
     """Test that any single variable has avgQ = 1.0."""
     VAR = VAR_factory(n_vars)

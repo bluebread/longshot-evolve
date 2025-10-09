@@ -244,7 +244,7 @@ def OR(*args: Sequence[Circuit | Sequence[Circuit] | Iterator[Circuit]]) -> Circ
     return result
 
 
-def avgQ(
+def avgQ_with_tree(
     circuit: Circuit,
     build_tree: bool = False
 ) -> float | tuple[float, DecisionTree]:
@@ -276,3 +276,9 @@ def avgQ(
        return qv, DecisionTree(ctree)
 
     return qv
+
+def avgQ(circuit: Circuit) -> float:
+    """
+    Calculate the average query complexity for the given circuit.   
+    """
+    return avgQ_with_tree(circuit, build_tree=False)
