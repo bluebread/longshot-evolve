@@ -8,6 +8,7 @@ Tests the avgQ complexity calculation for various Boolean circuits including:
 """
 import pytest
 from longshot import VAR_factory, XOR, AND, OR, avgQ, avgQ_with_tree
+from longshot.boolean.circuit import Circuit
 
 
 class TestDNF:
@@ -177,6 +178,41 @@ class TestXOR:
         circuit = XOR(x0, x1)
 
         assert avgQ(circuit) == pytest.approx(2.0), f"Expected avgQ=2.0, got {avgQ(circuit)}"
+
+
+class TestMAJORITY:
+    """Test MAJORITY function."""
+
+    def construct_majority(self, n: int) -> Circuit:
+        """Construct n-variable MAJORITY circuit."""
+        VAR = VAR_factory(n)
+        variables = [VAR(i) for i in range(n)]
+
+        # Majority can be constructed as OR of all combinations of (n//2 + 1) variables
+        from itertools import combinations
+        threshold = n // 2 + 1
+
+        terms = [AND(combo) for combo in combinations(variables, threshold)]
+
+        return OR(terms)
+
+    def expected_avgQ_majority(self, n: int) -> float:
+        """Calculate expected avgQ for n-variable MAJORITY circuit."""
+        import math
+        k = n // 2
+        return n - (math.comb(2*k, k) * n / (2**(2*k))) + (1 if n % 2 == 1 else 0)
+
+    @pytest.mark.parametrize("n_vars", [3,5,7,9,11,13])
+    def test_majority_complexity(self, n_vars: int):
+        """Test that n-variable MAJORITY has expected avgQ."""
+        if n_vars % 2 == 0:
+            pytest.skip("n must be odd for majority function")
+
+        circuit = self.construct_majority(n_vars)
+        expected_avgQ = self.expected_avgQ_majority(n_vars)
+
+        assert avgQ(circuit) == pytest.approx(expected_avgQ), \
+            f"MAJORITY of {n_vars} variables should have avgQ={expected_avgQ}, got {avgQ(circuit)}"  
 
 
 class TestDecisionTree:
