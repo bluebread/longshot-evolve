@@ -73,14 +73,18 @@ class Circuit:
         if self.num_vars <= 6:
             return (self.table.item() >> idx) & 1
         else:
-            chunk_idx = idx >> 6  # idx // 64
-            bit_idx = idx & 63    # idx % 64
+            chunk_idx = idx // 64  # idx // 64
+            bit_idx = idx % 64    # idx % 64
             return (self.table[chunk_idx].item() >> bit_idx) & 1
     
     def __str__(self):
         ts = '\n\t' + ',\n\t'.join([f'{bin(i)}={self[i]}' for i in range(1 << self.num_vars)])
         return f"Circuit(vars={self.vars}, table={ts})"
     
+
+def to_signed(n: int, bits: int = 64) -> int:
+    return n if n < (1 << (bits - 1)) else n - (1 << bits)
+
 
 def VAR_factory(
     num_vars: int,
@@ -128,8 +132,8 @@ def VAR_factory(
                     x |= (1 << k)  # Set k-th bit in the truth table
 
             tensor = torch.tensor(
-                [x],
-                dtype=torch.uint64,
+                [to_signed(x)],
+                dtype=torch.int64,
                 device=device
             )
         else:
@@ -141,10 +145,10 @@ def VAR_factory(
                         
                 t = torch.zeros(
                     (1 << (num_vars - 6),), 
-                    dtype=torch.uint64, 
+                    dtype=torch.int64, 
                     device=device
                 )
-                tensor = torch.fill(t, x)
+                tensor = torch.fill(t, to_signed(x))
             else:
                 # torch.arange and torch.where don't support uint64, use int64 then convert
                 x = torch.arange(
@@ -157,7 +161,7 @@ def VAR_factory(
                 # -1 in int64 has all bits set, which becomes (1<<64)-1 when cast to uint64
                 ones = torch.tensor(-1, dtype=torch.int64, device=device)
                 zeros = torch.tensor(0, dtype=torch.int64, device=device)
-                tensor = torch.where((x & mask) > 0, ones, zeros).to(torch.uint64)
+                tensor = torch.where((x & mask) > 0, ones, zeros)
 
         return Circuit(num_vars, [vidx], tensor)
     
@@ -246,7 +250,9 @@ def avgQ(
     Raises:
         May raise exceptions from MonotonicBooleanFunction construction or avgQ computation
     """
-    bf = _MonotonicBooleanFunction(circuit.num_vars, circuit.table.cpu().numpy())
+    n = circuit.num_vars
+    table = circuit.table.cpu().to(torch.uint64).numpy()
+    bf = _MonotonicBooleanFunction(n, table)
     ctree = _CppDecisionTree() if build_tree else None
     qv = bf.avgQ(ctree)
 

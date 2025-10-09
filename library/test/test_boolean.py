@@ -10,8 +10,8 @@ import pytest
 from longshot import VAR_factory, XOR, AND, OR, avgQ
 
 
-class TestMonotonicDNF:
-    """Test MonotonicBooleanFunction in DNF form (translated from test_bool first block)."""
+class TestDNF:
+    """Test DNF formula (translated from test_bool first block)."""
 
     def test_empty_function(self):
         """Test empty 3-variable monotonic function."""
@@ -51,7 +51,7 @@ class TestMonotonicDNF:
 
         # (x0 and not x1) OR (not x0 and x1 and x2) OR (x2) [redundant]
         # The C++ test shows adding x2 alone is redundant with the previous terms
-        circuit = (x0 & ~x1) | (~x0 & x1 & x2) | x2
+        circuit = (x0 & ~x1) | (~x0 & x1 & x2) | (~x0 & x1 & x2)
 
         # After adding redundant term, avgQ should remain the same
         assert avgQ(circuit) == pytest.approx(2.25), f"Expected avgQ=2.25, got {avgQ(circuit)}"
@@ -64,7 +64,7 @@ class TestMonotonicDNF:
 
         # Build up circuit that simplifies to NOT x2
         # From C++ test: after adding term (not x2), avgQ becomes 2.0
-        circuit = (x0 & ~x1) | (~x0 & x1 & x2) | ~x2
+        circuit = (x0 & ~x1) | (~x0 & x1 & x2) | (~x0 & x1 & x2) | ~x2
 
         assert avgQ(circuit) == pytest.approx(2.0), f"Expected avgQ=2.0, got {avgQ(circuit)}"
 
@@ -74,14 +74,14 @@ class TestMonotonicDNF:
         x0, x1, x2 = VAR(0), VAR(1), VAR(2)
 
         # NOT x2 OR x2 = always true
-        circuit = ~x2 | x2
+        circuit = (x0 & ~x1) | (~x0 & x1 & x2) | (~x0 & x1 & x2) | ~x2 | x2
 
         # Tautology should have avgQ = 0 (no queries needed)
         assert avgQ(circuit) == pytest.approx(0.0), f"Expected avgQ=0.0, got {avgQ(circuit)}"
 
 
-class TestCountingCNF:
-    """Test CountingBooleanFunction in CNF form (translated from test_bool second block)."""
+class TestCNF:
+    """Test CNF formula (translated from test_bool second block)."""
 
     def test_single_clause(self):
         """Test single clause: x0 OR NOT x1."""
@@ -100,7 +100,7 @@ class TestCountingCNF:
 
         # (x0 or not x1) AND x2
         # In C++, adding x2 alone is redundant, avgQ stays 1.5
-        circuit = (x0 | ~x1) & x2
+        circuit = (x0 | ~x1) & (x0 | ~x1)
 
         assert avgQ(circuit) == pytest.approx(1.5), f"Expected avgQ=1.5, got {avgQ(circuit)}"
 
@@ -110,7 +110,7 @@ class TestCountingCNF:
         x0, x1, x2 = VAR(0), VAR(1), VAR(2)
 
         # (x0 or not x1) AND x2 AND (not x0 or x1 or x2)
-        circuit = (x0 | ~x1) & x2 & (~x0 | x1 | x2)
+        circuit = (x0 | ~x1) & (x0 | ~x1) & (~x0 | x1 | x2)
 
         assert avgQ(circuit) == pytest.approx(2.25), f"Expected avgQ=2.25, got {avgQ(circuit)}"
 
@@ -120,7 +120,7 @@ class TestCountingCNF:
         x0, x1, x2 = VAR(0), VAR(1), VAR(2)
 
         # Previous circuit AND (not x2)
-        circuit = (x0 | ~x1) & x2 & (~x0 | x1 | x2) & ~x2
+        circuit = (x0 | ~x1) & (x0 | ~x1) & (~x0 | x1 | x2) & ~x2
 
         assert avgQ(circuit) == pytest.approx(2.0), f"Expected avgQ=2.0, got {avgQ(circuit)}"
 
@@ -130,7 +130,7 @@ class TestCountingCNF:
         x0, x1, x2 = VAR(0), VAR(1), VAR(2)
 
         # x2 AND NOT x2 = always false
-        circuit = x2 & ~x2
+        circuit = (x0 | ~x1) & (x0 | ~x1) & (~x0 | x1 | x2) & ~x2 & x2
 
         # Contradiction should have avgQ = 0 (no queries needed)
         assert avgQ(circuit) == pytest.approx(0.0), f"Expected avgQ=0.0, got {avgQ(circuit)}"
@@ -139,6 +139,16 @@ class TestCountingCNF:
 class TestXOR:
     """Test XOR function (translated from test_bool third block)."""
 
+    def test_xor10_complexity(self):
+        """Test 4-variable XOR has avgQ=4.0."""
+        n = 10
+        VAR = VAR_factory(n)
+
+        # 4-variable XOR
+        circuit = XOR(*[VAR(i) for i in range(n)])
+
+        assert avgQ(circuit) == pytest.approx(float(n)), f"Expected avgQ={float(n)}, got {avgQ(circuit)}"
+        
     def test_xor4_complexity(self):
         """Test 4-variable XOR has avgQ=4.0."""
         VAR = VAR_factory(4)
