@@ -114,24 +114,7 @@ Solving: avgQ(TRIBES_{w,s}) = 2(2^w - 1)(1 - (1 - 1/2^w)^s), matching the lower 
 
 ## Mayor known results
 
-[Thm 10.] For any boolean function f : B^n -> B$, if wt(f) >= 4 log n, then
-    avgQ(f) >=  log (wt(f) / log n) + O(loglog (wt(f) / log n)).
-Otherwise, avgQ(f) = O(1). 
-
-PROOF SKETCH: We prove this result by designing a recursive query algorithm. The algorithm queries an arbitrary bit until the subfunction's weight becomes sufficiently small, or more specifically, smaller than the logarithm of its input length; once this border condition is met, we invoke another algorithm which, on average, takes O(1) bits to query the subfunction.
-
-[Thm 11.] avgQ(f) >= log (wt(f) / log n) - O(loglog (wt(f) / log n)) for almost all boolean functions f : B^n -> B with fixed weight wt(f) >= 4 log n. 
-
-PROOF SKETCH: Consider XOR_n as a motivating example. It has weight 2^(n-1), and querying any
-variable splits the satisfying inputs exactly in half. Thus any algorithm must query all n variables.
-
-Key insight: Almost all functions with fixed weight m behave similarly. For a random function f with
-wt(f) = m, querying any variable splits the weight roughly evenly. More precisely, for almost all
-such functions, after querying k variables along any decision tree path, the restricted subfunction
-has weight close to m/2^k. This balanced splitting property forces any algorithm to query
-approximately log(m / log n) variables before the weight becomes small enough to resolve efficiently.
-
-[Thm 12.] For every CNF formula F of w width and n variables, we have avgQ(F) >= n(1 - log (n/w) / O(w)) + w / n.
+[Thm 10.] For every CNF formula F of w width and n variables, we have avgQ(F) >= n(1 - log (n/w) / O(w)) + w / n.
 
 PROOF SKETCH: The query algorithm works in two phases:
   1. Randomly query each variable independently with probability p
@@ -142,7 +125,7 @@ Key insight: With constant probability, phase 1 queries (1-c)n variables and mak
   avgQ(F) ≤ p·(1-c)n + (1-p)·n = n(1 - pc) = n(1 - log(n)/O(w))
 The w/n term accounts for querying remaining variables in narrow clauses.
 
-[Thm 13.] For any integer 2 log n <= w <= n, there exists a boolean function f : B^n -> B computable by a DNF formula of width w and size ceil(2^w / w) such that avgQ(F) = n (1 - log (n) / Theta(w)).
+[Thm 11.] For any integer 2 log n <= w <= n, there exists a boolean function f : B^n -> B computable by a DNF formula of width w and size ceil(2^w / w) such that avgQ(F) = n (1 - log (n) / Theta(w)).
 
 PROOF SKETCH: Construction via function composition.
 
@@ -185,7 +168,7 @@ These circuits will be combined with OR to form: f = OR(circuit_1, circuit_2, ..
 
 **Key insight**: Any circuit that uses at most w variables can be converted to a DNF formula of width at most w. This is because we can enumerate all inputs where the circuit outputs 1, and create an AND-term for each satisfying assignment. Therefore, your returned circuits don't need to be simple AND-terms - they can be arbitrary boolean functions on w variables!
 
-This construction strategy is similar to Theorem 13: compose hard functions using OR to build a function that is hard to query under uniform distribution.
+This construction strategy is similar to Theorem 11: compose hard functions using OR to build a function that is hard to query under uniform distribution.
 
 ## Available Tools: The Circuit Class
 
@@ -210,9 +193,9 @@ circuit = ~ x0                      # ¬x_0
 circuit = AND([x0, OR([x1, x2])])     # x_0 ∧ (x_1 ∨ x_2)
 
 # Useful methods on Circuit
-width = circuit.width()                # Get the width (number of variables used in this circuit)
+width = circuit.width                # Get the width (number of variables used in this circuit)
 
-# Note: You are not allowed to use Circuit class directly. DO NOT call circuit.avgQ() - it is computationally expensive and used only for evaluation.
+# Note: You are NOT allowed to use Circuit class directly. 
 ```
 
 ## Allowed Libraries and Determinism
@@ -264,7 +247,7 @@ Higher avgQ(f) yields higher scores. The bonus term rewards formulas that exceed
 
 2. **Maximize circuit width**: Each circuit should use exactly w variables (not less). A circuit using fewer than w variables will have lower avgQ than one using w variables, so you're leaving complexity on the table.
 
-3. **Think compositionally**: Build complex functions from simpler hard components (like in Theorem 13).
+3. **Think compositionally**: Build complex functions from simpler hard components.
 
 4. **Leverage asymmetry**: Circuits that are harder to query and output 1 on few inputs are necessary to achieve high avgQ. For example, while XOR is hard, OR(XOR, XOR, ...) is easy since it outputs 1 with probability 1/2 and can be resolved quickly. Be careful with each circuit's probability of outputting 1.
 
@@ -272,3 +255,116 @@ Higher avgQ(f) yields higher scores. The bonus term rewards formulas that exceed
 
 Your goal: Discover DNF formulas with avgQ as close to the upper bound as possible while respecting the width constraint w.
 """
+
+
+job_config = LocalJobConfig(eval_program_path="evaluate.py")
+
+strategy = "weighted"
+
+if strategy == "uniform":
+    # 1. Uniform from correct programs
+    parent_config = dict(
+        parent_selection_strategy="power_law",
+        exploitation_alpha=0.0,
+        exploitation_ratio=1.0,
+    )
+elif strategy == "hill_climbing":
+    # 2. Hill Climbing (Always from the Best)
+    parent_config = dict(
+        parent_selection_strategy="power_law",
+        exploitation_alpha=100.0,
+        exploitation_ratio=1.0,
+    )
+elif strategy == "weighted":
+    # 3. Weighted Prioritization
+    parent_config = dict(
+        parent_selection_strategy="weighted",
+        parent_selection_lambda=10.0,
+    )
+elif strategy == "power_law":
+    # 4. Power-Law Prioritization
+    parent_config = dict(
+        parent_selection_strategy="power_law",
+        exploitation_alpha=1.0,
+        exploitation_ratio=0.2,
+    )
+elif strategy == "power_law_high":
+    # 4. Power-Law Prioritization
+    parent_config = dict(
+        parent_selection_strategy="power_law",
+        exploitation_alpha=2.0,
+        exploitation_ratio=0.2,
+    )
+elif strategy == "beam_search":
+    # 5. Beam Search
+    parent_config = dict(
+        parent_selection_strategy="beam_search",
+        num_beams=10,
+    )
+    
+db_config = DatabaseConfig(
+    db_path="evolution_db.sqlite",
+    num_islands=2,
+    archive_size=40,
+    # Inspiration parameters
+    elite_selection_ratio=0.3,
+    num_archive_inspirations=4,
+    num_top_k_inspirations=2,
+    # Island migration parameters
+    migration_interval=10,
+    migration_rate=0.1,  # chance to migrate program to random island
+    island_elitism=True,  # Island elite is protected from migration
+    **parent_config,
+)
+
+
+evo_config = EvolutionConfig(
+    task_sys_msg=search_task_sys_msg,
+    patch_types=["diff", "full", "cross"],
+    patch_type_probs=[0.6, 0.3, 0.1],
+    num_generations=10,
+    max_parallel_jobs=5,
+    max_patch_resamples=3,
+    max_patch_attempts=3,
+    job_type="local",
+    language="python",
+    llm_models=[
+        # "gemini-2.5-pro",
+        # "gemini-2.5-flash",
+        # "bedrock/us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "o4-mini",
+        "gpt-5",
+        "gpt-5-mini",
+        "gpt-5-nano",
+    ],
+    llm_kwargs=dict(
+        temperatures=[0.0, 0.5, 1.0],
+        reasoning_efforts=["auto", "low", "medium", "high"],
+        max_tokens=32768,
+    ),
+    meta_rec_interval=10,
+    meta_llm_models=["gpt-5-nano"],
+    meta_llm_kwargs=dict(temperatures=[0.0], max_tokens=16384),
+    embedding_model="text-embedding-3-small",
+    code_embed_sim_threshold=0.995,
+    novelty_llm_models=["gpt-5-nano"],
+    novelty_llm_kwargs=dict(temperatures=[0.0], max_tokens=16384),
+    llm_dynamic_selection="ucb1",
+    llm_dynamic_selection_kwargs=dict(exploration_coef=1.0),
+    init_program_path="initial.py",
+    results_dir="results_cpack",
+)
+
+
+def main():
+    evo_runner = EvolutionRunner(
+        evo_config=evo_config,
+        job_config=job_config,
+        db_config=db_config,
+        verbose=True,
+    )
+    evo_runner.run()
+
+
+if __name__ == "__main__":
+    results_data = main()
