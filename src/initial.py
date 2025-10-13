@@ -4,7 +4,9 @@ from longshot import XOR, AND, OR
 
 def construct_formula(n, w):
     """"""
-    return VAR(0)
+    # This DNF formula has avgQ at least w but doesn't utilize
+    # other n - w variables well to achieve higher complexity. 
+    return [XOR([VAR(i) for i in range(w)])]
 
 # EVOLVE-BLOCK-END
 

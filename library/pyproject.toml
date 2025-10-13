@@ -6,7 +6,8 @@ requires = [
     "pika>=1.3.2",
     "aio-pika>=9.0.0",
     "binarytree>=6.5.1",
-    "torch>=2.8.0"
+    "torch>=2.7.0",
+    "pytest>=8.4.2",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -28,7 +29,7 @@ build-backend = "setuptools.build_meta"
 # target-version = "py37"
 
 [project]
-name = "longshot-llm"
+name = "longshot"
 version = "0.1.0"
 authors = [
   { name="bluebread", email="hotbead70127@gmail.com" },
