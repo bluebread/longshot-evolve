@@ -28,6 +28,7 @@ class Circuit:
         Initialize a circuit with the given truth table tensor.
 
         Args:
+            num_vars: Total number of variables in the circuit
             involved_vars: Iterable of variable indices used in this circuit
             truth_table: Optional PyTorch tensor storing truth table values
         """
