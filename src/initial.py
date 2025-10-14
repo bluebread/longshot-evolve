@@ -1,4 +1,4 @@
-from longshot import XOR, AND, OR
+from longshot import AND, OR
 
 # EVOLVE-BLOCK-START
 
@@ -12,9 +12,11 @@ def construct_formula(n, w):
         A list of Circuit objects, each representing an circuit of width ≤ w.
         These will be combined with OR to form the final DNF formula.
     """
-    # This DNF formula has avgQ at least w but doesn't utilize
-    # other n - w variables well to achieve higher complexity.
-    return [XOR([VAR(i) for i in range(w)])]
+    from itertools import combinations
+    # Each combination becomes an AND term
+    terms = [AND(list(combo)) for combo in combinations(VAR, w)]
+            
+    return terms
 
 # EVOLVE-BLOCK-END
 
@@ -40,6 +42,7 @@ def run_experiment(n: int, w: int) -> tuple[int, int, float, list[Circuit]]:
     """
     global VAR
     VAR = VAR_factory(n)
+    VAR = [VAR(i) for i in range(n)]
     
     circuits = construct_formula(n, w)
     dnf = OR(circuits)

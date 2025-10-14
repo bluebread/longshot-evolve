@@ -14,64 +14,24 @@ You are an expert mathematician specializing in boolean function analysis and ci
 
 Let B = {0, 1} and f : B^n -> B be a boolean function, which outputs either 0 or 1 on n-bit inputs. The weight, denoted by wt(f), is the number of inputs on which f outputs 1.
 
-A (deterministic) decision tree T is a binary tree. Each internal node is labeled by some integer i = 1,2,...,n, and the edges and the leaves are labeled by 0 or 1. Repeatedly querying x_i and following the edge labeled by x_i, the decision tree T finally reaches a leaf and outputs the leaf's label, called the value T(x) of T on input x. The cost of deciding the value T(x), denoted by cost(T, x), is the length of the root-to-leaf path which T passes through, i.e. the number of bits that T queries on input x. We say T computes a boolean function f (with zero error) if T(x) = f(x) for every x. A query algorithm queries some variables and determines the value of the function; a query algorithm can be viewed as a family of decision trees. Let me introduce the definition of avgQ.
-
-[Def 1.] The average-case deterministic query complexity of a boolean function f: B^n -> B under a uniform input distribution is defined by avgQ(f) = min_T E_{x ~ B^n} [cost(T, x)],where T is taken over all zero-error deterministic decision trees that compute f. 
+[Def 1.] The average-case deterministic query complexity of a boolean function f: B^n -> B under a uniform input distribution is defined by avgQ(f) = min_T E_{x ~ B^n} [cost(T, x)], where T is taken over all zero-error deterministic decision trees that compute f. 
 
 ## Examples
 
-### AND, OR, XOR
+### AND, OR
 
-Define AND_n(x) = x_1 ⋀ ... ⋀ x_n  and OR_n(x) = x_1 V ... V x_n and XOR_n (x) = x_1 ⊕ ... ⊕ x_n.
+Define AND_n(x) = x_1 ⋀ ... ⋀ x_n  and OR_n(x) = x_1 V ... V x_n.
 
 [Prop 2.] avgQ(f) = 2(1 - 1/2^n) for any n-variable boolean function f with wt(f) = 1.
-
-PROOF:
-Consider a boolean function f: {0,1}^n → {0,1} with exactly one input z where f(z) = 1
-(i.e., wt(f) = 1). We call z the "black point". We prove avgQ(f) = 2(1 - 1/2^n) by induction on n.
-
-BASE CASE (n = 1):
-When n = 1, we can directly verify that avgQ(f) = 2(1 - 1/2) = 1. ✓
-
-INDUCTIVE STEP:
-Assume the formula holds for (n-1) variables. Now consider an optimal query algorithm for n variables.
-
-The algorithm must query some variable x_i first. There are two cases:
-  - If x_i ≠ z_i (the queried bit differs from the black point's bit):
-      The algorithm immediately outputs 0 (no more queries needed)
-  - If x_i = z_i (the queried bit matches the black point's bit):
-      The algorithm continues with the restricted subfunction f|_{x_i = z_i}
-
-Computing the average query complexity:
-  avgQ(f) = 1 + Pr[x_i ≠ z_i] · 0 + Pr[x_i = z_i] · avgQ(f|_{x_i = z_i})
-
-Since x is drawn uniformly from {0,1}^n, we have Pr[x_i = z_i] = 1/2:
-  avgQ(f) = 1 + (1/2) · 0 + (1/2) · avgQ(f|_{x_i = z_i})
-          = 1 + (1/2) · 2(1 - 1/2^(n-1))              [by induction hypothesis]
-          = 1 + 1 - 1/2^n
-          = 2(1 - 1/2^n)  ✓
 
 KEY INSIGHT: Functions with weight 1 have avgQ approaching 2 as n increases.
 
 [Cor 3.] avgQ(AND_n) = avgQ(OR_n) = 2(1 - 1/2^n).
 
-PROOF:
-AND_n and OR_n both have exactly one input where they output 1 (all 1s for AND_n, all 0s for OR_n).
-
-[Prop 4.] Let f be an n-variable boolean function. Then, avgQ(f) = n if and only if f = XOR_n or f = 1 ⊕ XOR_n.
-
-PROOF SKETCH:
-(⇒) If f = XOR_n or XOR_n ⊕ 1, then every variable is essential, so avgQ(f) = n.
-
-(⇐) By induction: if avgQ(f) = n, then for any variable x_i queried first, both subfunctions
-f|_{x_i=0} and f|_{x_i=1} must have avgQ = n-1 (otherwise avgQ(f) < n). By induction hypothesis,
-each subfunction is XOR_{n-1} or XOR_{n-1} ⊕ 1. They must differ (else x_i is not essential),
-which forces f to be XOR_n or XOR_n ⊕ 1.
-
 ### Threshold and Majority functions
 
-[Def 5.] The threshold function is defined by THR_{n, t}(x) = 1 if and only if |x| >= t, where |x| is the number of 1's in x.
-[Def 6.] The majority function is defined by MAJ_n(x) = 1 if and only if |x| >= n/2.
+[Def 4.] The threshold function is defined by THR_{n, t}(x) = 1 if and only if |x| >= t, where |x| is the number of 1's in x.
+[Def 5.] The majority function is defined by MAJ_n(x) = 1 if and only if |x| >= n/2.
 
 PROPERTY: THR_{n,t} can be represented by a CNF/DNF formula of width min(t, n-t), and MAJ_n can be
 represented by a CNF/DNF formula of width ceil(n/2).
@@ -81,45 +41,19 @@ WHY: For threshold functions (a similar argument applies to majority):
   - CNF representation: "At most n-t variables are 0" = AND of all (n-t)-sized OR clauses. Width = n-t.
   - We can choose the better representation, giving width = min(t, n-t).
 
-[Prop 7.] Let k = floor(n/2). For any n >= 1, avgQ(MAJ_n) = n - n * C(2*k, k) / 4^k = n - Theta(sqrt(n)).
-
-PROOF SKETCH:
-For odd n, avgQ(MAJ_n) = 1 + avgQ(MAJ_{n-1}), so focus on even n = 2k. MAJ_n is symmetric
-(depends only on Hamming weight). Using the avgQ formula of symmetric function and simplifying binomial
-sums yields avgQ(MAJ_n) = n - C(2k, k) · (2k+1) / 4^k. By Stirling's approximation,
-C(2k, k) ≈ 4^k / sqrt(π·k), giving avgQ(MAJ_n) = n - Theta(sqrt(n)).
+[Prop 6.] Let k = floor(n/2). For any n >= 1, avgQ(MAJ_n) = n - n * C(2*k, k) / 4^k = n - Theta(sqrt(n)).
 
 ### Tribes function
 
-[Def 8.] The tribes function with parameters w and s, denoted by TRIBES_{w,s}, is defined by TRIBES_{w,s}(x) = (x_{1,1} ⋀ ... ⋀ x_{1,w}) V (x_{2,1} ⋀ ... ⋀ x_{2,w}) V ... V (x_{s,1} ⋀ ... ⋀ x_{s,w}), where n = w * s and the variables are partitioned into s disjoint blocks of size w.
+[Def 7.] The tribes function with parameters w and s, denoted by TRIBES_{w,s}, is defined by TRIBES_{w,s}(x) = (x_{1,1} ⋀ ... ⋀ x_{1,w}) V (x_{2,1} ⋀ ... ⋀ x_{2,w}) V ... V (x_{s,1} ⋀ ... ⋀ x_{s,w}), where n = w * s and the variables are partitioned into s disjoint blocks of size w.
 
-[Prop 9.] For any w, s >= 1, avgQ(TRIBES_{w,s}) = (1 - (1 - 2^{-w})^s) * 2(2^w - 1).
+[Prop 8.] For any w, s >= 1, avgQ(TRIBES_{w,s}) = (1 - (1 - 2^{-w})^s) * 2(2^w - 1).
 
-PROOF SKETCH:
-Lower bound: The OSSS inequality gives avgQ(TRIBES_{w,s}) ≥ 2(2^w - 1)(1 - (1 - 1/2^w)^s).
-
-Upper bound (matching query algorithm): Query the s AND-clauses sequentially. For each clause,
-query its w variables one by one. If any variable is 0, that clause fails (outputs 0); move to
-the next clause. If all w variables are 1, the clause (and thus TRIBES) outputs 1.
-
-By induction on s: Base case (s=1) is just AND_w with avgQ = 2(1 - 1/2^w). For s clauses,
-the first clause uses 2(1 - 1/2^w) queries on average. With probability (1 - 1/2^w), it fails
-and we continue with the remaining (s-1) clauses. This gives the recurrence:
-  avgQ(TRIBES_{w,s}) = 2(1 - 1/2^w) + (1 - 1/2^w) · avgQ(TRIBES_{w,s-1})
-Solving: avgQ(TRIBES_{w,s}) = 2(2^w - 1)(1 - (1 - 1/2^w)^s), matching the lower bound.
+[Cor 9.] avgQ(TRIBES_{w,s}) = Theta(s) when s < 2^w ln 4. Otherwise, avgQ(TRIBES_{w,s}) = Theta(2^w). 
 
 ## Mayor known results
 
-[Thm 10.] For every CNF formula F of w width and n variables, we have avgQ(F) >= n(1 - log (n/w) / O(w)) + w / n.
-
-PROOF SKETCH: The query algorithm works in two phases:
-  1. Randomly query each variable independently with probability p
-  2. Repeatedly find unsatisfied clauses and query their remaining variables until F is determined
-
-Key insight: With constant probability, phase 1 queries (1-c)n variables and makes F constant
-(using switching lemma analysis where c = log(n)/w). This gives:
-  avgQ(F) ≤ p·(1-c)n + (1-p)·n = n(1 - pc) = n(1 - log(n)/O(w))
-The w/n term accounts for querying remaining variables in narrow clauses.
+[Thm 10.] For every CNF formula F of w width and n variables, we have avgQ(F) <= n(1 - log (n/w) / O(w)) + w / n.
 
 [Thm 11.] For any integer 2 log n <= w <= n, there exists a boolean function f : B^n -> B computable by a DNF formula of width w and size ceil(2^w / w) such that avgQ(F) = n (1 - log (n) / Theta(w)).
 
@@ -161,7 +95,7 @@ def construct_formula(n: int, w: int) -> list[Circuit]:
 
 Your function returns a list of Circuit objects, where each circuit uses at most `w` of VAR(0), ..., VAR(n-1) variables. These circuits will be combined with OR to form: f = OR(circuit_1, circuit_2, ..., circuit_k)
 
-**Key insight**: Any circuit that uses at most w variables can be converted to a DNF formula of width at most w. This is because we can enumerate all inputs where the circuit outputs 1, and create an AND-term for each satisfying assignment. Therefore, your returned circuits don't need to be simple AND-terms - they can be arbitrary boolean functions on w variables!
+**Key insight**: Any circuit that uses at most w variables can be converted to a DNF formula of width at most w. This is because we can enumerate all inputs where the circuit outputs 1, and create an AND-term for each satisfying assignment. Therefore, your returned circuits don't need to be simple AND-terms - they can be arbitrary boolean functions on w of n variables!
 
 This construction strategy is similar to Theorem 11: compose hard functions using OR to build a function that is hard to query under uniform distribution.
 
@@ -170,7 +104,7 @@ This construction strategy is similar to Theorem 11: compose hard functions usin
 The Circuit class provides these operations:
 
 ```python
-from longshot.boolean import VAR_factory, AND, OR, XOR
+from longshot.boolean import VAR_factory, AND, OR
 
 # Create variables
 VAR = VAR_factory(n)  # Factory for creating n variables
@@ -180,7 +114,6 @@ x1 = VAR(1)           # Variable x_1
 # Boolean operations
 circuit = x0 & x1 & x2              # x_0 ∧ x_1 ∧ x_2, equivalent to AND([x0, x1, x2])
 circuit = x0 | x1 | x2              # x_0 ∨ x_1, equivalent to OR([x0, x1, x2])
-circuit = x0 ^ x1 ^ x2              # x_0 ⊕ x_1, equivalent to XOR([x0, x1, x2])
 circuit = x0 - x1                   # x_0 ∧ ¬x_1, equivalent to AND([x0, ~x1])
 circuit = ~ x0                      # ¬x_0
 
@@ -243,11 +176,7 @@ Higher avgQ(f) yields higher scores. The bonus term rewards formulas that exceed
 
 2. **Maximize circuit width**: Each circuit should use exactly w variables (not less). A circuit using fewer than w variables will have lower avgQ than one using w variables, so you're leaving complexity on the table.
 
-3. **Think compositionally**: Build complex functions from simpler hard components.
-
-4. **Leverage asymmetry**: Circuits that are harder to query and output 1 on few inputs are necessary to achieve high avgQ. For example, while XOR is hard, OR(XOR, XOR, ...) is easy since it outputs 1 with probability 1/2 and can be resolved quickly. Be careful with each circuit's probability of outputting 1.
-
-5. **Be creative**: The best known result is n(1 - log(n)/Theta(w)) - can you find one that matches or exceeds the upper bound?
+3. **Be creative**: The best known result is n(1 - log(n)/Theta(w)) - can you find one that matches or exceeds the upper bound?
 
 Your goal: Discover DNF formulas with avgQ as close to the upper bound as possible while respecting the width constraint w.
 """
@@ -301,9 +230,9 @@ elif strategy == "beam_search":
 db_config = DatabaseConfig(
     db_path="evolution_db.sqlite",
     num_islands=2,
-    archive_size=40,
+    archive_size=5,
     # Inspiration parameters
-    elite_selection_ratio=0.3,
+    elite_selection_ratio=0.6,
     num_archive_inspirations=4,
     num_top_k_inspirations=2,
     # Island migration parameters
@@ -318,8 +247,8 @@ evo_config = EvolutionConfig(
     task_sys_msg=search_task_sys_msg,
     patch_types=["diff", "full", "cross"],
     patch_type_probs=[0.6, 0.3, 0.1],
-    num_generations=10,
-    max_parallel_jobs=5,
+    num_generations=30,
+    max_parallel_jobs=16,
     max_patch_resamples=3,
     max_patch_attempts=3,
     job_type="local",
@@ -329,26 +258,26 @@ evo_config = EvolutionConfig(
         # "gemini-2.5-flash",
         # "bedrock/us.anthropic.claude-sonnet-4-20250514-v1:0",
         "o4-mini",
-        "gpt-5",
+        # "gpt-5",
         "gpt-5-mini",
         "gpt-5-nano",
     ],
     llm_kwargs=dict(
         temperatures=[0.0, 0.5, 1.0],
-        reasoning_efforts=["auto", "low", "medium", "high"],
+        reasoning_efforts=["auto", "low", "medium"],
         max_tokens=32768,
     ),
     meta_rec_interval=10,
     meta_llm_models=["gpt-5-nano"],
     meta_llm_kwargs=dict(temperatures=[0.0], max_tokens=16384),
     embedding_model="text-embedding-3-small",
-    code_embed_sim_threshold=0.995,
+    code_embed_sim_threshold=0.97,
     novelty_llm_models=["gpt-5-nano"],
     novelty_llm_kwargs=dict(temperatures=[0.0], max_tokens=16384),
     llm_dynamic_selection="ucb1",
     llm_dynamic_selection_kwargs=dict(exploration_coef=1.0),
     init_program_path="initial.py",
-    results_dir="results_cpack",
+    results_dir="results",
 )
 
 
