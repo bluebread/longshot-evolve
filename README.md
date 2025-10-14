@@ -4,19 +4,6 @@
 
 LongshotEvolve combines the [Longshot library](library/) for boolean circuit analysis with the [AlphaEvolve](https://github.com/shinkle-lanl/shinka) framework to automatically evolve DNF (Disjunctive Normal Form) formulas that approach theoretical bounds for average-case deterministic query complexity (avgQ).
 
-## Table of Contents
-
-- [Overview](#overview)
-- [What is avgQ?](#what-is-avgq)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Evolution System](#evolution-system)
-- [Examples](#examples)
-- [Development](#development)
-- [Documentation](#documentation)
-- [License](#license)
-
 ## Overview
 
 Given a boolean function `f: {0,1}^n → {0,1}`, the **average-case deterministic query complexity** (avgQ) measures how many input bits a decision tree must examine on average to compute `f(x)` for a uniformly random input `x`.
@@ -70,13 +57,7 @@ This compiles the C++ backend and installs the Python package in editable mode.
 
 ### Install Evolution Dependencies
 
-```bash
-pip install shinka  # AlphaEvolve framework
-# Additional dependencies for evolution:
-# - litellm (for LLM API access)
-# - torch (for embeddings)
-# - sqlite3 (standard library)
-```
+See [SakanaAI/ShinkaEvolve](https://github.com/SakanaAI/ShinkaEvolve). 
 
 ### Verify Installation
 
@@ -151,23 +132,6 @@ longshot-evolve/
 - **evaluate.py**: Scores formulas using a three-component metric
 - **run_evo.py**: Configures LLMs, evolution strategy, database settings
 
-**3. Scoring System**
-
-For each test case (n, w), the score is:
-
-```python
-Q = n * (1 - log(n/w) / w)  # Theoretical upper bound
-eps = 0.01
-C = 1 / eps = 100
-
-s1 = C * avgQ(f) / Q                              # Ratio score
-s2 = 1 / max(eps, Q - avgQ(f) + eps)              # Proximity penalty
-s3 = C * (exp(avgQ(f) - Q) - 1) if avgQ(f) >= Q else 0  # Bonus
-
-total_score = s1 + s2 + s3
-```
-
-Higher avgQ yields higher scores. The bonus term heavily rewards exceeding bounds.
 
 ## Evolution System
 
@@ -267,79 +231,3 @@ complexity, tree = avgQ_with_tree(circuit, build_tree=True)
 print(f"avgQ = {complexity}")
 # Can analyze the decision tree structure
 ```
-
-## Development
-
-### Running Tests
-
-```bash
-cd library
-pytest test/test_boolean.py -v          # All tests
-pytest test/test_boolean.py::TestXOR    # Specific test class
-```
-
-### Building the Library
-
-```bash
-cd library
-pip install -e .                         # Development install
-make clean                               # Remove build artifacts
-```
-
-### Contributing
-
-The project uses:
-- **Code style**: Follow PEP 8 for Python
-- **C++ standard**: C++17
-- **Testing**: pytest for Python, add tests for new features
-- **Documentation**: Update CLAUDE.md for AI-relevant changes
-
-### Known Limitations
-
-- **Maximum n = 26 variables**: Due to 31-bit depth field in C++ implementation
-- **Memory usage**: Truth tables use packed representation for n ≤ 6, tensor arrays for n > 6
-- **Evaluation time**: avgQ computation is exponential in n (O(n × 2^n))
-
-## Documentation
-
-- **[CLAUDE.md](CLAUDE.md)**: Comprehensive guide for AI coding assistants
-- **[library/README.md](library/README.md)**: Longshot library TODO list and development notes
-- **[src/run_evo.py](src/run_evo.py)**: Task description and mathematical background (in `search_task_sys_msg`)
-
-### Further Reading
-
-- **avgQ Theory**: See the task description in `run_evo.py` for definitions and known results
-- **AlphaEvolve Framework**: https://github.com/shinkle-lanl/shinka
-- **Boolean Function Complexity**: Standard texts on computational complexity theory
-
-## Research Context
-
-This project explores the intersection of:
-- **Computational complexity theory**: Understanding fundamental limits of computation
-- **Automated discovery**: Using LLMs to explore mathematical constructions
-- **Evolutionary computation**: Iterative improvement through selection and variation
-
-The goal is to discover new boolean formula constructions that achieve high query complexity, potentially leading to:
-- Better understanding of decision tree complexity
-- New techniques for function composition
-- Insights into the power of evolutionary search for mathematical discovery
-
-## License
-
-[Specify your license here]
-
-## Citation
-
-If you use LongshotEvolve in your research, please cite:
-
-```
-[Add citation information]
-```
-
-## Contact
-
-[Add contact information or links to issue tracker]
-
----
-
-**Status**: Active development. The evolution system is functional and discovering interesting formulas. Contributions welcome!
