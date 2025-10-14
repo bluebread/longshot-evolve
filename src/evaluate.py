@@ -9,11 +9,11 @@ from typing import Tuple, Optional, List, Dict, Any
 from math import floor, log2, exp
 
 from shinka.core import run_shinka_eval
-from longshot import Circuit, avgQ
+from longshot import Circuit, avgQ, OR
 
 
 def adapted_validate_formula(
-    run_output: Tuple[int, int, List[Circuit]],
+    run_output: Tuple[int, int, float, List[Circuit]],
 ) -> Tuple[bool, Optional[str]]:
     """
     Validates circle packing results based on the output of 'run_packing'.
@@ -24,10 +24,11 @@ def adapted_validate_formula(
     Returns:
         (is_valid: bool, error_message: Optional[str])
     """
-    n, w, circuits = run_output
+    n, w, _, circuits = run_output
     max_width = max([circ.width for circ in circuits])
     max_num_vars = max([circ.num_vars for circ in circuits])
     all_involved_variables = set()
+    msg = ""
     
     for circ in circuits:
         all_involved_variables = all_involved_variables.union(circ.vars)
@@ -53,7 +54,7 @@ def adapted_validate_formula(
     
     return True, "The formula is constructed correctly." + msg
 
-def aggregate_formula_metrics(results: List[Tuple[int, int, List[Circuit]]]) -> Dict[str, Any]:
+def aggregate_formula_metrics(results: List[Tuple[int, int, float, List[Circuit]]]) -> Dict[str, Any]:
     """
     Aggregates metrics for formulas.
     """
@@ -63,17 +64,19 @@ def aggregate_formula_metrics(results: List[Tuple[int, int, List[Circuit]]]) -> 
     def score(n, w, q: float) -> float:
         maxq = theo_max_avgQ(n, w)
         eps = 0.01
-        C = 100
-        bonus = C * exp(q - maxq) if q >= maxq else 0.0
+        C = 1 / eps
+        s1 = C * q / maxq
+        s2 = 1 / (max(0, maxq - q) + eps)
+        s3 = C * (exp(q - maxq) - 1) if q >= maxq else 0.0
         
-        return 1 / (max(0, maxq - q) + eps) + bonus
+        return s1 + s2 + s3
     
-    scores = [(n, w, score(n, w, avgQ(circ))) for n, w, circ in results]
+    nume_results = [(n, w, q) for n, w, q, _ in results]
     
     metrics = {
-        "combined_score": sum([s for _, _, s in scores]),
-        "public": {f"n{n}w{w}": s for n, w, s in scores},
-        "private": {}
+        "combined_score": sum([score(n, w, q) for n, w, q in nume_results]),
+        "public": {f"n{n}w{w}": score(n, w, q) for n, w, q in nume_results},
+        "private": {f"n{n}w{w}_avgQ": q for n, w, q in nume_results}
     }
     
     return metrics
@@ -125,9 +128,9 @@ if __name__ == "__main__":
         description="Circle packing evaluator using shinka.eval"
     )
     parser.add_argument(
-        "--max-num-vars",
+        "--max_num_vars",
         type=int,
-        default=20,
+        default=16,
         help="The max number of variables"
     )
     parser.add_argument(

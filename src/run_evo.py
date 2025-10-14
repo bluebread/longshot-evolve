@@ -16,9 +16,7 @@ Let B = {0, 1} and f : B^n -> B be a boolean function, which outputs either 0 or
 
 A (deterministic) decision tree T is a binary tree. Each internal node is labeled by some integer i = 1,2,...,n, and the edges and the leaves are labeled by 0 or 1. Repeatedly querying x_i and following the edge labeled by x_i, the decision tree T finally reaches a leaf and outputs the leaf's label, called the value T(x) of T on input x. The cost of deciding the value T(x), denoted by cost(T, x), is the length of the root-to-leaf path which T passes through, i.e. the number of bits that T queries on input x. We say T computes a boolean function f (with zero error) if T(x) = f(x) for every x. A query algorithm queries some variables and determines the value of the function; a query algorithm can be viewed as a family of decision trees. Let me introduce the definition of avgQ.
 
-[Def 1.] The average-case deterministic query complexity of a boolean function f: B^n -> B under a uniform input distribution is defined by 
-    avgQ(f) = min_T E_{x ~ B^n} [cost(T, x)],
-where T is taken over all zero-error deterministic decision trees that compute f. 
+[Def 1.] The average-case deterministic query complexity of a boolean function f: B^n -> B under a uniform input distribution is defined by avgQ(f) = min_T E_{x ~ B^n} [cost(T, x)],where T is taken over all zero-error deterministic decision trees that compute f. 
 
 ## Examples
 
@@ -93,9 +91,7 @@ C(2k, k) ≈ 4^k / sqrt(π·k), giving avgQ(MAJ_n) = n - Theta(sqrt(n)).
 
 ### Tribes function
 
-[Def 8.] The tribes function with parameters w and s, denoted by TRIBES_{w,s}, is defined as follows:
-    TRIBES_{w,s}(x) = (x_{1,1} ⋀ ... ⋀ x_{1,w}) V (x_{2,1} ⋀ ... ⋀ x_{2,w}) V ... V (x_{s,1} ⋀ ... ⋀ x_{s,w}),
-where n = w * s and the variables are partitioned into s disjoint blocks of size w.
+[Def 8.] The tribes function with parameters w and s, denoted by TRIBES_{w,s}, is defined by TRIBES_{w,s}(x) = (x_{1,1} ⋀ ... ⋀ x_{1,w}) V (x_{2,1} ⋀ ... ⋀ x_{2,w}) V ... V (x_{s,1} ⋀ ... ⋀ x_{s,w}), where n = w * s and the variables are partitioned into s disjoint blocks of size w.
 
 [Prop 9.] For any w, s >= 1, avgQ(TRIBES_{w,s}) = (1 - (1 - 2^{-w})^s) * 2(2^w - 1).
 
@@ -163,8 +159,7 @@ def construct_formula(n: int, w: int) -> list[Circuit]:
 
 ## Construction Strategy
 
-Your function returns a list of Circuit objects, where each circuit uses at most `w` of VAR(0), ..., VAR(n-1) variables.
-These circuits will be combined with OR to form: f = OR(circuit_1, circuit_2, ..., circuit_k)
+Your function returns a list of Circuit objects, where each circuit uses at most `w` of VAR(0), ..., VAR(n-1) variables. These circuits will be combined with OR to form: f = OR(circuit_1, circuit_2, ..., circuit_k)
 
 **Key insight**: Any circuit that uses at most w variables can be converted to a DNF formula of width at most w. This is because we can enumerate all inputs where the circuit outputs 1, and create an AND-term for each satisfying assignment. Therefore, your returned circuits don't need to be simple AND-terms - they can be arbitrary boolean functions on w variables!
 
@@ -226,16 +221,17 @@ def construct_majority(n: int, w: int) -> list[Circuit]:
 
 ## Evaluation and Scoring
 
-Your function will be tested on various values of n with w ranging from (n - floor(log n)) to n.
-For each test case (n, w), your formula f is scored using:
+Your function will be tested on various values of n with w ranging from (n - floor(log n)) to n. For each test case (n, w), your formula f is scored using:
 
-  score(f) = 1 / max(eps, Q(n,w) - avgQ(f) + eps) + C * bonus(f)
+  score(f) = s1 + s2 + s3
 
 where:
   - Q(n,w) = n(1 - log(n/w) / w)  [theoretical upper bound]
   - eps = 0.01
-  - bonus(f) = exp(avgQ(f) - Q(n,w)) - 1  if avgQ(f) >= Q(n,w), else 0
-  - C is a constant bonus multiplier, e.g. 100
+  - C = 1 / eps
+  - s1 = C * avgQ(f) / Q(n,w)
+  - s2 = 1 / max(eps, Q(n,w) - avgQ(f) + eps)
+  - s3 = C * (exp(avgQ(f) - Q(n,w)) - 1)  if avgQ(f) >= Q(n,w), else 0
 
 Higher avgQ(f) yields higher scores. The bonus term rewards formulas that exceed the known bounds.
 
