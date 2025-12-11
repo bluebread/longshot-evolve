@@ -196,7 +196,7 @@ def construct_formula(n, w):
     # Generate all combinations of w variables
     terms = [AND(list(combo)) for combo in combinations(VAR, w)]
 
-    return terms  # Will be combined with OR
+    return OR(terms)
 ```
 
 ### Example 2: Using the Library
